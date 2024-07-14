@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Optimización de Recursos y Tareas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Sistema de Optimización de Recursos y Tareas</h1>
+    <form id="formulario-datos">
+        <label for="cantidadTareas">Número de Tareas:</label>
+        <input type="number" id="cantidadTareas" name="cantidadTareas" required><br>
+        <label for="cantidadProductos">Número de Productos:</label>
+        <input type="number" id="cantidadProductos" name="cantidadProductos" required><br>
+        <label for="cantidadPersonal">Número de Personal:</label>
+        <input type="number" id="cantidadPersonal" name="cantidadPersonal" required><br>
+        <label for="cantidadTiempo">Número de Tiempos (min):</label>
+        <input type="number" id="cantidadTiempo" name="cantidadTiempo" required><br>
+        <label for="cantidadCosto">Número de Costos (MXN):</label>
+        <input type="number" id="cantidadCosto" name="cantidadCosto" required><br>
+        <button type="submit">Enviar Datos</button>
+    </form>
+
+    <div id="resultados" style="display: none;">
+        <h2>Mejor Solución</h2>
+        <p id="mejor-solucion"></p>
+
+        <h2>Evolución de la Aptitud</h2>
+        <canvas id="grafico-evolucion"></canvas>
+
+        <h2>Mejores Individuos</h2>
+        <div id="mejores-individuos"></div>
+    </div>
+
+    <div id="escenarios">
+        <h2>Escenarios de Costos y Tiempos</h2>
+        <table id="tabla-escenarios" border="1">
+            <thead>
+                <tr>
+                    <th>Personal</th>
+                    <th>Tiempo (min)</th>
+                    <th>Costo (MXN)</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.getElementById('formulario-datos').addEventListener('submit', function(event) {
+            event.preventDefault();
+            fetch('/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams(new FormData(event.target))
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('resultados').style.display = 'block';
+                document.getElementById('mejor-solucion').innerHTML = `
+                    Tareas: ${data.mejorSolucion.tareas}<br>
+                    Productos: ${data.mejorSolucion.productos}<br>
+                    Personal: ${data.mejorSolucion.personal}<br>
+                    Tiempo: ${data.mejorSolucion.tiempo} minutos<br>
+                    Costo: ${data.mejorSolucion.costo} pesos
+                `;
+
+                const ctx = document.getElementById('grafico-evolucion').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({length: data.evolucion.length}, (_, i) => i + 1),
+                        datasets: [{
+                            label: 'Aptitud',
+                            data: data.evolucion,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Generaciones'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Aptitud'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                const mejoresIndividuosDiv = document.getElementById('mejores-individuos');
+                mejoresIndividuosDiv.innerHTML = '';
+                data.mejoresIndividuos.forEach((individuo, index) => {
+                    const individuoCanvas = document.createElement('canvas');
+                    individuoCanvas.id = `grafico-individuo-${index + 1}`;
+                    mejoresIndividuosDiv.appendChild(individuoCanvas);
+                    new Chart(individuoCanvas.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: ['Tareas', 'Productos', 'Personal', 'Tiempo', 'Costo'],
+                            datasets: [{
+                                label: `Individuo ${index + 1}`,
+                                data: [
+                                    individuo.tareas.reduce((a, b) => a + b, 0),
+                                    individuo.productos.reduce((a, b) => a + b, 0),
+                                    individuo.personal.reduce((a, b) => a + b, 0),
+                                    individuo.tiempo.reduce((a, b) => a + b, 0),
+                                    individuo.costo.reduce((a, b) => a + b, 0)
+                                ],
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                });
+            });
+        });
+
+        fetch('/escenarios')
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('tabla-escenarios').querySelector('tbody');
+                data.forEach(escenario => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${escenario.personal}</td>
+                        <td>${escenario.tiempo}</td>
+                        <td>${escenario.costo.toFixed(2)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+    </script>
+</body>
+</html>
