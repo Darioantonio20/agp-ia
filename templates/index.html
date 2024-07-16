@@ -4,21 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Optimización de Recursos y Tareas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <h1>Sistema de Optimización de Recursos y Tareas</h1>
-    <form id="formulario-datos">
-        <label for="cantidadTareas">Número de Tareas:</label>
-        <input type="number" id="cantidadTareas" name="cantidadTareas" required><br>
-        <label for="cantidadProductos">Número de Productos:</label>
-        <input type="number" id="cantidadProductos" name="cantidadProductos" required><br>
-        <label for="cantidadPersonal">Número de Personal:</label>
-        <input type="number" id="cantidadPersonal" name="cantidadPersonal" required><br>
-        <label for="cantidadTiempo">Número de Tiempos (min):</label>
-        <input type="number" id="cantidadTiempo" name="cantidadTiempo" required><br>
-        <label for="cantidadCosto">Número de Costos (MXN):</label>
-        <input type="number" id="cantidadCosto" name="cantidadCosto" required><br>
+    
+    <div class="container">
+        <h2>Actividades y Costos Unitarios</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Actividad</th>
+                    <th>Equipo Necesario</th>
+                    <th>Costo (MXN)</th>
+                    <th>Tiempo Aproximado (min)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for actividad in actividades %}
+                <tr>
+                    <td>{{ actividad.actividad }}</td>
+                    <td>{{ actividad.equipo }}</td>
+                    <td>{{ actividad.costo }}</td>
+                    <td>{{ actividad.tiempo }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <form id="formulario-datos" method="POST" class="formulario-centrado">
+        <input type="number" class="input" placeholder="Número de cantidad de actividades" id="cantidadActividades" name="cantidadActividades" required><br>
+        <button type="button" id="generar-actividades">Generar Actividades</button><br>
+        <div id="inputs-actividades"></div>
         <button type="submit">Enviar Datos</button>
     </form>
 
@@ -33,22 +52,31 @@
         <div id="mejores-individuos"></div>
     </div>
 
-    <div id="escenarios">
-        <h2>Escenarios de Costos y Tiempos</h2>
-        <table id="tabla-escenarios" border="1">
-            <thead>
-                <tr>
-                    <th>Personal</th>
-                    <th>Tiempo (min)</th>
-                    <th>Costo (MXN)</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-    </div>
-
     <script>
+        document.getElementById('generar-actividades').addEventListener('click', function() {
+            const cantidadActividades = document.getElementById('cantidadActividades').value;
+            const inputsContainer = document.getElementById('inputs-actividades');
+            inputsContainer.innerHTML = '';
+
+            const actividades = {{ actividades | tojson }};
+            
+            for (let i = 0; i < cantidadActividades; i++) {
+                const select = document.createElement('select');
+                select.name = 'actividad';
+                select.classList.add('input');  // Añadir la clase "input" aquí
+
+                actividades.forEach(function(actividad) {
+                    const option = document.createElement('option');
+                    option.value = actividad.posicion;
+                    option.textContent = actividad.actividad;
+                    select.appendChild(option);
+                });
+
+                inputsContainer.appendChild(select);
+                inputsContainer.appendChild(document.createElement('br'));
+            }
+        });
+
         document.getElementById('formulario-datos').addEventListener('submit', function(event) {
             event.preventDefault();
             fetch('/', {
@@ -62,11 +90,11 @@
             .then(data => {
                 document.getElementById('resultados').style.display = 'block';
                 document.getElementById('mejor-solucion').innerHTML = `
-                    Tareas: ${data.mejorSolucion.tareas}<br>
-                    Productos: ${data.mejorSolucion.productos}<br>
-                    Personal: ${data.mejorSolucion.personal}<br>
-                    Tiempo: ${data.mejorSolucion.tiempo} minutos<br>
-                    Costo: ${data.mejorSolucion.costo} pesos
+                    Actividades: ${data.actividades.join(', ')}<br>
+                    Productos: ${data.productos.join(', ')}<br>
+                    Personal requerido: ${data.personal_requerido}<br>
+                    Tiempo total: ${data.tiempo_total} minutos<br>
+                    Costo total: ${data.costo_total} MXN
                 `;
 
                 const ctx = document.getElementById('grafico-evolucion').getContext('2d');
@@ -114,11 +142,11 @@
                             datasets: [{
                                 label: `Individuo ${index + 1}`,
                                 data: [
-                                    individuo.tareas.reduce((a, b) => a + b, 0),
-                                    individuo.productos.reduce((a, b) => a + b, 0),
-                                    individuo.personal.reduce((a, b) => a + b, 0),
-                                    individuo.tiempo.reduce((a, b) => a + b, 0),
-                                    individuo.costo.reduce((a, b) => a + b, 0)
+                                    individuo.actividades.length,
+                                    new Set(individuo.productos).size,
+                                    individuo.personal,
+                                    individuo.tiempo,
+                                    individuo.costo
                                 ],
                                 backgroundColor: 'rgba(54, 162, 235, 0.2)',
                                 borderColor: 'rgba(54, 162, 235, 1)',
@@ -137,21 +165,6 @@
                 });
             });
         });
-
-        fetch('/escenarios')
-            .then(response => response.json())
-            .then(data => {
-                const tbody = document.getElementById('tabla-escenarios').querySelector('tbody');
-                data.forEach(escenario => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${escenario.personal}</td>
-                        <td>${escenario.tiempo}</td>
-                        <td>${escenario.costo.toFixed(2)}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            });
     </script>
 </body>
 </html>

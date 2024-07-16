@@ -3,74 +3,70 @@ from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
 
-SALARIO_POR_HORA = 17.71
-COSTO_MAXIMO = 5000
+ACTIVIDADES_LIMPIEZA = [
+    {'posicion': 0, 'actividad': 'Barrer', 'equipo': 'Escoba', 'costo': 20, 'tiempo': 15},
+    {'posicion': 1, 'actividad': 'Trapear', 'equipo': 'Trapeador y cubo', 'costo': 25, 'tiempo': 20},
+    {'posicion': 2, 'actividad': 'Limpiar ventanas', 'equipo': 'Limpiavidrios y trapo', 'costo': 35, 'tiempo': 30},
+    {'posicion': 3, 'actividad': 'Sacar la basura', 'equipo': 'Bolsas de basura', 'costo': 10, 'tiempo': 10},
+    {'posicion': 4, 'actividad': 'Desinfectar superficies', 'equipo': 'Desinfectante y trapo', 'costo': 40, 'tiempo': 25},
+    {'posicion': 5, 'actividad': 'Aspirar alfombras y tapetes', 'equipo': 'Aspiradora', 'costo': 30, 'tiempo': 30},
+    {'posicion': 6, 'actividad': 'Limpieza de baños', 'equipo': 'Cepillo de baño y desinfectante', 'costo': 45, 'tiempo': 40},
+    {'posicion': 7, 'actividad': 'Limpieza de cocinas', 'equipo': 'Desengrasante y trapo', 'costo': 45, 'tiempo': 45},
+    {'posicion': 8, 'actividad': 'Limpieza de muebles', 'equipo': 'Trapo y pulidor de muebles', 'costo': 20, 'tiempo': 20},
+    {'posicion': 9, 'actividad': 'Limpieza de electrodomésticos', 'equipo': 'Trapo y limpiador multiusos', 'costo': 35, 'tiempo': 30},
+    {'posicion': 10, 'actividad': 'Limpieza de oficinas', 'equipo': 'Aspiradora y trapo', 'costo': 50, 'tiempo': 60},
+    {'posicion': 11, 'actividad': 'Limpieza de áreas comunes', 'equipo': 'Trapeador y cubo', 'costo': 40, 'tiempo': 45},
+    {'posicion': 12, 'actividad': 'Limpieza de ventanas', 'equipo': 'Limpiavidrios y trapo', 'costo': 35, 'tiempo': 30},
+    {'posicion': 13, 'actividad': 'Limpieza de alfombras y tapetes', 'equipo': 'Aspiradora', 'costo': 30, 'tiempo': 30},
+    {'posicion': 14, 'actividad': 'Limpieza de pisos duros', 'equipo': 'Mopa y cubo', 'costo': 30, 'tiempo': 40},
+    {'posicion': 15, 'actividad': 'Limpieza de equipos y maquinaria', 'equipo': 'Desinfectante y trapo', 'costo': 60, 'tiempo': 60},
+    {'posicion': 16, 'actividad': 'Limpieza post-construcción', 'equipo': 'Escoba, trapeador y cubo', 'costo': 80, 'tiempo': 120},
+    {'posicion': 17, 'actividad': 'Limpieza de estacionamientos', 'equipo': 'Escoba y recogedor', 'costo': 50, 'tiempo': 60},
+    {'posicion': 18, 'actividad': 'Limpieza de hospitales', 'equipo': 'Desinfectante y trapo', 'costo': 100, 'tiempo': 90},
+    {'posicion': 19, 'actividad': 'Limpieza de tiendas y centros comerciales', 'equipo': 'Aspiradora y trapeador', 'costo': 70, 'tiempo': 90}
+]
 
 class Individuo:
-    def __init__(self, tareas, productos, personal, tiempo, costo):
-        self.tareas = tareas
-        self.productos = productos
+    def __init__(self, actividades, personal, tiempo, costo):
+        self.actividades = actividades
         self.personal = personal
         self.tiempo = tiempo
         self.costo = costo
         self.aptitud = self.evaluarAptitud()
 
     def evaluarAptitud(self):
-        aptitudTareas = sum(self.tareas) * -1
-        aptitudProductos = sum(self.productos) * -1
-        aptitudPersonal = sum(self.personal) * -1
-        aptitudTiempo = sum(self.tiempo) * -1
-        aptitudCosto = sum(self.costo) * -1
-        return aptitudTareas + aptitudProductos + aptitudPersonal + aptitudTiempo + aptitudCosto
+        return -(self.tiempo + self.costo + self.personal)
 
-def crearIndividuo(cantidadTareas, cantidadProductos, cantidadPersonal, cantidadTiempo, cantidadCosto):
-    tareas = [random.randint(0, 1) for _ in range(cantidadTareas)]
-    productos = [random.randint(0, 1) for _ in range(cantidadProductos)]
-    personal = [random.randint(1, 4) for _ in range(cantidadPersonal)]
-    tiempo = [random.randint(60, 100) for _ in range(cantidadTiempo)]
-    costo = [min(p * t * SALARIO_POR_HORA, COSTO_MAXIMO) for p, t in zip(personal, tiempo)]
-    return Individuo(tareas, productos, personal, tiempo, costo)
+def crearIndividuo(cantidadActividades):
+    actividades = random.sample(ACTIVIDADES_LIMPIEZA, cantidadActividades)
+    personal = max(1, sum([actividad['tiempo'] for actividad in actividades]) // 60)
+    tiempo = sum([actividad['tiempo'] for actividad in actividades])
+    costo = sum([actividad['costo'] for actividad in actividades])
+    return Individuo(actividades, personal, tiempo, costo)
 
-def crearPoblacion(tamano, cantidadTareas, cantidadProductos, cantidadPersonal, cantidadTiempo, cantidadCosto):
-    return [crearIndividuo(cantidadTareas, cantidadProductos, cantidadPersonal, cantidadTiempo, cantidadCosto) for _ in range(tamano)]
+def crearPoblacion(tamano, cantidadActividades):
+    return [crearIndividuo(cantidadActividades) for _ in range(tamano)]
 
 def seleccionarPadres(poblacion):
     poblacion.sort(key=lambda x: x.aptitud, reverse=True)
     return poblacion[:2]
 
 def cruce(padre1, padre2):
-    puntoCruce = random.randint(1, len(padre1.tareas) - 1)
-    hijo1Tareas = padre1.tareas[:puntoCruce] + padre2.tareas[puntoCruce:]
-    hijo2Tareas = padre2.tareas[:puntoCruce] + padre1.tareas[puntoCruce:]
-    hijo1Productos = padre1.productos[:puntoCruce] + padre2.productos[puntoCruce:]
-    hijo2Productos = padre2.productos[:puntoCruce] + padre1.productos[puntoCruce:]
-    hijo1Personal = padre1.personal[:puntoCruce] + padre2.personal[puntoCruce:]
-    hijo2Personal = padre2.personal[:puntoCruce] + padre1.personal[puntoCruce:]
-    hijo1Tiempo = padre1.tiempo[:puntoCruce] + padre2.tiempo[puntoCruce:]
-    hijo2Tiempo = padre2.tiempo[:puntoCruce] + padre1.tiempo[puntoCruce:]
-    hijo1Costo = [min(p * t * SALARIO_POR_HORA, COSTO_MAXIMO) for p, t in zip(hijo1Personal, hijo1Tiempo)]
-    hijo2Costo = [min(p * t * SALARIO_POR_HORA, COSTO_MAXIMO) for p, t in zip(hijo2Personal, hijo2Tiempo)]
-    return Individuo(hijo1Tareas, hijo1Productos, hijo1Personal, hijo1Tiempo, hijo1Costo), \
-           Individuo(hijo2Tareas, hijo2Productos, hijo2Personal, hijo2Tiempo, hijo2Costo)
+    puntoCruce = random.randint(1, len(padre1.actividades) - 1)
+    hijo1Actividades = padre1.actividades[:puntoCruce] + padre2.actividades[puntoCruce:]
+    hijo2Actividades = padre2.actividades[:puntoCruce] + padre1.actividades[puntoCruce:]
+    return crearIndividuo(len(hijo1Actividades)), crearIndividuo(len(hijo2Actividades))
 
 def mutar(individuo, tasaMutacion):
-    for i in range(len(individuo.tareas)):
-        if random.random() < tasaMutacion:
-            individuo.tareas[i] = 1 - individuo.tareas[i]
-    for i in range(len(individuo.productos)):
-        if random.random() < tasaMutacion:
-            individuo.productos[i] = 1 - individuo.productos[i]
-    for i in range(len(individuo.personal)):
-        if random.random() < tasaMutacion:
-            individuo.personal[i] = random.randint(1, 4)
-    for i in range(len(individuo.tiempo)):
-        if random.random() < tasaMutacion:
-            individuo.tiempo[i] = random.randint(60, 100)
-    individuo.costo = [min(p * t * SALARIO_POR_HORA, COSTO_MAXIMO) for p, t in zip(individuo.personal, individuo.tiempo)]
-    individuo.aptitud = individuo.evaluarAptitud()
+    if random.random() < tasaMutacion:
+        individuo.actividades = random.sample(ACTIVIDADES_LIMPIEZA, len(individuo.actividades))
+        individuo.personal = max(1, sum([actividad['tiempo'] for actividad in individuo.actividades]) // 60)
+        individuo.tiempo = sum([actividad['tiempo'] for actividad in individuo.actividades])
+        individuo.costo = sum([actividad['costo'] for actividad in individuo.actividades])
+        individuo.aptitud = individuo.evaluarAptitud()
 
-def algoritmoGenetico(tamanoPoblacion, cantidadTareas, cantidadProductos, cantidadPersonal, cantidadTiempo, cantidadCosto, generaciones, tasaMutacion):
-    poblacion = crearPoblacion(tamanoPoblacion, cantidadTareas, cantidadProductos, cantidadPersonal, cantidadTiempo, cantidadCosto)
+def algoritmoGenetico(tamanoPoblacion, cantidadActividades, generaciones, tasaMutacion):
+    poblacion = crearPoblacion(tamanoPoblacion, cantidadActividades)
     evolucionMejorAptitud = []
 
     for generacion in range(generaciones):
@@ -94,60 +90,34 @@ def algoritmoGenetico(tamanoPoblacion, cantidadTareas, cantidadProductos, cantid
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        cantidadTareas = int(request.form['cantidadTareas'])
-        cantidadProductos = int(request.form['cantidadProductos'])
-        cantidadPersonal = int(request.form['cantidadPersonal'])
-        cantidadTiempo = int(request.form['cantidadTiempo'])
-        cantidadCosto = int(request.form['cantidadCosto'])
-        
+        cantidadActividades = int(request.form['cantidadActividades'])
+        actividadesSeleccionadas = request.form.getlist('actividad')
+
+        actividades = [ACTIVIDADES_LIMPIEZA[int(index)] for index in actividadesSeleccionadas]
+
         mejorSolucion, evolucion, mejoresIndividuos = algoritmoGenetico(
             tamanoPoblacion=10, 
-            cantidadTareas=cantidadTareas, 
-            cantidadProductos=cantidadProductos, 
-            cantidadPersonal=cantidadPersonal, 
-            cantidadTiempo=cantidadTiempo, 
-            cantidadCosto=cantidadCosto, 
+            cantidadActividades=cantidadActividades, 
             generaciones=50, 
             tasaMutacion=0.1
         )
-        
-        return jsonify({
-            'mejorSolucion': {
-                'tareas': mejorSolucion.tareas,
-                'productos': mejorSolucion.productos,
-                'personal': mejorSolucion.personal,
-                'tiempo': mejorSolucion.tiempo,
-                'costo': mejorSolucion.costo
-            },
-            'evolucion': evolucion,
-            'mejoresIndividuos': [
-                {
-                    'tareas': individuo.tareas,
-                    'productos': individuo.productos,
-                    'personal': individuo.personal,
-                    'tiempo': individuo.tiempo,
-                    'costo': individuo.costo
-                }
-                for individuo in mejoresIndividuos
-            ]
-        })
-    
-    return render_template('index.html')
 
-@app.route('/escenarios', methods=['GET'])
-def escenarios():
-    # Ejemplo de escenarios basados en diferente personal
-    escenarios = []
-    for personal in range(1, 5):
-        tiempo = random.randint(60, 100) // personal  # el tiempo disminuye con más personal
-        costo = min(personal * tiempo * SALARIO_POR_HORA, COSTO_MAXIMO)
-        escenarios.append({
-            'personal': personal,
-            'tiempo': tiempo,
-            'costo': costo
+        actividadesSeleccionadas = [actividad['actividad'] for actividad in mejorSolucion.actividades]
+        productosNecesarios = set([actividad['equipo'] for actividad in mejorSolucion.actividades])
+        tiempoTotal = mejorSolucion.tiempo
+        costoTotal = mejorSolucion.costo
+        personalRequerido = mejorSolucion.personal
+
+        return jsonify({
+            'actividades': actividadesSeleccionadas,
+            'productos': list(productosNecesarios),
+            'tiempo_total': tiempoTotal,
+            'costo_total': costoTotal,
+            'personal_requerido': personalRequerido,
+            'evolucion': evolucion
         })
-    
-    return jsonify(escenarios)
+
+    return render_template('index.html', actividades=ACTIVIDADES_LIMPIEZA)
 
 if __name__ == '__main__':
     app.run(debug=True)
