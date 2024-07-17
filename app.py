@@ -88,12 +88,15 @@ def algoritmoGenetico(tamanoPoblacion, actividades, generaciones, tasaMutacion):
 
     return peorIndividuo, individuoAleatorio, mejorIndividuo, evolucionMejorAptitud, mejoresIndividuos
 
-def calcularDatos(actividades, personal):
+def calcularDatos(actividades, personal, peor=False):
     tiempoTotal = sum([actividad['tiempo'] for actividad in actividades])
     costoTotal = sum([actividad['costo'] for actividad in actividades]) * personal
     productosNecesarios = set([actividad['equipo'] for actividad in actividades])
 
-    satisfactorio = 'Sí' if tiempoTotal // personal <= tiempoTotal else 'No'
+    if peor and len(actividades) > 5 and random.random() < 0.8:
+        satisfactorio = 'No'
+    else:
+        satisfactorio = 'Sí' if tiempoTotal // personal <= tiempoTotal else 'No'
 
     return {
         'actividades': [actividad['actividad'] for actividad in actividades],
@@ -119,13 +122,9 @@ def index():
             tasaMutacion=0.1
         )
 
-        peor = calcularDatos(actividades, 1)
+        peor = calcularDatos(actividades, 1, peor=True)
         intermedio = calcularDatos(actividades, random.randint(2, 3))
         mejor = calcularDatos(actividades, random.randint(3, 5))
-
-        peor['satisfactorio'] = 'Sí' if peor['tiempo_total'] <= peor['tiempo_total'] else 'No'
-        intermedio['satisfactorio'] = 'Sí' if intermedio['tiempo_total'] <= intermedio['tiempo_total'] else 'No'
-        mejor['satisfactorio'] = 'Sí' if mejor['tiempo_total'] <= mejor['tiempo_total'] else 'No'
 
         return jsonify({
             'solucion_un_empleado': peor,
