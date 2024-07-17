@@ -254,3 +254,7 @@ th {
   box-shadow: none;
   transform: translate(3px, 3px);
 }
+
+.align-left {
+  text-align: left;
+}
