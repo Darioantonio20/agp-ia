@@ -1,5 +1,10 @@
 import random
+import os
+import matplotlib.pyplot as plt
 from flask import Flask, render_template, request, jsonify
+
+# Configurar Matplotlib para usar el backend 'Agg'
+plt.switch_backend('Agg')
 
 app = Flask(__name__)
 
@@ -27,109 +32,147 @@ ACTIVIDADES_LIMPIEZA = [
 ]
 
 class Individuo:
-    def __init__(self, actividades, personal, tiempo, costo):
+    def __init__(self, actividades):
         self.actividades = actividades
-        self.personal = personal
-        self.tiempo = tiempo
-        self.costo = costo
-        self.aptitud = self.evaluarAptitud()
+        self.personal, self.tiempo, self.costo = self.calcular_datos()
+        self.aptitud = self.evaluar_aptitud()
 
-    def evaluarAptitud(self):
-        return -(self.tiempo + self.costo + self.personal)
+    def calcular_datos(self):
+        tiempo_total = sum([actividad['tiempo'] for actividad in self.actividades])
+        costo_total = sum([actividad['costo'] for actividad in self.actividades])
+        personal = max(1, tiempo_total // 60)
+        return personal, tiempo_total, costo_total
 
-def crearIndividuo(actividades):
-    personal = max(1, sum([actividad['tiempo'] for actividad in actividades]) // 60)
-    tiempo = sum([actividad['tiempo'] for actividad in actividades])
-    costo = sum([actividad['costo'] for actividad in actividades])
-    return Individuo(actividades, personal, tiempo, costo)
+    def evaluar_aptitud(self):
+        return -(self.tiempo + self.costo + self.personal * 100)
 
-def crearPoblacion(tamano, actividades):
-    return [crearIndividuo(actividades) for _ in range(tamano)]
+def crear_individuo(actividades):
+    return Individuo(actividades)
 
-def seleccionarPadres(poblacion):
+def crear_poblacion(tamano, actividades):
+    return [crear_individuo(random.sample(actividades, len(actividades))) for _ in range(tamano)]
+
+def seleccionar_padres(poblacion):
     poblacion.sort(key=lambda x: x.aptitud, reverse=True)
     return poblacion[:2]
 
 def cruce(padre1, padre2):
-    puntoCruce = random.randint(1, len(padre1.actividades) - 1)
-    hijo1Actividades = padre1.actividades[:puntoCruce] + padre2.actividades[puntoCruce:]
-    hijo2Actividades = padre2.actividades[:puntoCruce] + padre1.actividades[puntoCruce:]
-    return crearIndividuo(hijo1Actividades), crearIndividuo(hijo2Actividades)
+    punto_cruce = random.randint(1, len(padre1.actividades) - 1)
+    hijo1_actividades = padre1.actividades[:punto_cruce] + padre2.actividades[punto_cruce:]
+    hijo2_actividades = padre2.actividades[:punto_cruce] + padre1.actividades[punto_cruce:]
+    return crear_individuo(hijo1_actividades), crear_individuo(hijo2_actividades)
 
-def mutar(individuo, tasaMutacion, actividades):
-    if random.random() < tasaMutacion:
+def mutar(individuo, tasa_mutacion, actividades):
+    if random.random() < tasa_mutacion:
         individuo.actividades = random.sample(actividades, len(individuo.actividades))
-        individuo.personal = max(1, sum([actividad['tiempo'] for actividad in individuo.actividades]) // 60)
-        individuo.tiempo = sum([actividad['tiempo'] for actividad in individuo.actividades])
-        individuo.costo = sum([actividad['costo'] for actividad in individuo.actividades])
-        individuo.aptitud = individuo.evaluarAptitud()
+        individuo.personal, individuo.tiempo, individuo.costo = individuo.calcular_datos()
+        individuo.aptitud = individuo.evaluar_aptitud()
 
-def algoritmoGenetico(tamanoPoblacion, actividades, generaciones, tasaMutacion):
-    poblacion = crearPoblacion(tamanoPoblacion, actividades)
-    evolucionMejorAptitud = []
+def algoritmo_genetico(tamano_poblacion, actividades, generaciones, tasa_mutacion):
+    poblacion = crear_poblacion(tamano_poblacion, actividades)
+    evolucion_tiempos = []
+    evolucion_costos = []
 
     for generacion in range(generaciones):
-        padres = seleccionarPadres(poblacion)
+        padres = seleccionar_padres(poblacion)
         descendencia = []
-        while len(descendencia) < tamanoPoblacion:
+        while len(descendencia) < tamano_poblacion:
             hijo1, hijo2 = cruce(padres[0], padres[1])
-            mutar(hijo1, tasaMutacion, actividades)
-            mutar(hijo2, tasaMutacion, actividades)
+            mutar(hijo1, tasa_mutacion, actividades)
+            mutar(hijo2, tasa_mutacion, actividades)
             descendencia.append(hijo1)
             descendencia.append(hijo2)
         poblacion = descendencia
-        mejorIndividuo = max(poblacion, key=lambda x: x.aptitud)
-        peorIndividuo = min(poblacion, key=lambda x: x.aptitud)
-        evolucionMejorAptitud.append(mejorIndividuo.aptitud)
-        print(f"Generación {generacion}: Mejor Aptitud = {mejorIndividuo.aptitud}")
+        mejor_individuo = max(poblacion, key=lambda x: x.aptitud)
+        peor_individuo = min(poblacion, key=lambda x: x.aptitud)
+        promedio_individuo = sum(individuo.aptitud for individuo in poblacion) / len(poblacion)
 
-    mejoresIndividuos = sorted(poblacion, key=lambda x: x.aptitud, reverse=True)[:3]
-    individuoAleatorio = random.choice(poblacion)
+        evolucion_tiempos.append((mejor_individuo.tiempo, peor_individuo.tiempo, promedio_individuo))
+        evolucion_costos.append((mejor_individuo.costo, peor_individuo.costo, promedio_individuo))
 
-    return peorIndividuo, individuoAleatorio, mejorIndividuo, evolucionMejorAptitud, mejoresIndividuos
+        print(f"Generación {generacion}: Mejor Aptitud = {mejor_individuo.aptitud}")
 
-def calcularDatos(actividades, personal, peor=False):
-    tiempoTotal = sum([actividad['tiempo'] for actividad in actividades])
-    costoTotal = sum([actividad['costo'] for actividad in actividades]) * personal
-    productosNecesarios = set([actividad['equipo'] for actividad in actividades])
+    mejores_individuos = sorted(poblacion, key=lambda x: x.aptitud, reverse=True)[:3]
+    individuo_aleatorio = random.choice(poblacion)
+
+    return peor_individuo, individuo_aleatorio, mejor_individuo, mejores_individuos, evolucion_tiempos, evolucion_costos
+
+def calcular_datos(actividades, personal, peor=False):
+    tiempo_total = sum([actividad['tiempo'] for actividad in actividades])
+    costo_total = sum([actividad['costo'] for actividad in actividades]) * personal
+    productos_necesarios = set([actividad['equipo'] for actividad in actividades])
 
     if peor and len(actividades) > 5 and random.random() < 0.8:
         satisfactorio = 'No'
     else:
-        satisfactorio = 'Sí' if tiempoTotal // personal <= tiempoTotal else 'No'
+        satisfactorio = 'Sí' if tiempo_total // personal <= tiempo_total else 'No'
 
     return {
         'actividades': [actividad['actividad'] for actividad in actividades],
-        'productos': list(productosNecesarios),
-        'tiempo_total': tiempoTotal // personal,
-        'costo_total': costoTotal,
+        'productos': list(productos_necesarios),
+        'tiempo_total': tiempo_total // personal,
+        'costo_total': costo_total,
         'personal_requerido': personal,
         'satisfactorio': satisfactorio
     }
 
+def graficar_evolucion(evolucion_tiempos, evolucion_costos):
+    generaciones = range(len(evolucion_tiempos))
+
+    tiempos_mejor, tiempos_peor, tiempos_promedio = zip(*evolucion_tiempos)
+    costos_mejor, costos_peor, costos_promedio = zip(*evolucion_costos)
+
+    plt.figure()
+    plt.plot(generaciones, tiempos_mejor, label='Mejor Tiempo')
+    plt.plot(generaciones, tiempos_peor, label='Peor Tiempo')
+    plt.plot(generaciones, tiempos_promedio, label='Promedio Tiempo')
+    plt.xlabel('Generaciones')
+    plt.ylabel('Tiempo Total')
+    plt.title('Evolución del Tiempo a lo largo de las Generaciones')
+    plt.legend()
+    tiempo_grafica_path = os.path.join('static', 'grafica_tiempos.png')
+    plt.savefig(tiempo_grafica_path)
+
+    plt.figure()
+    plt.plot(generaciones, costos_mejor, label='Mejor Costo')
+    plt.plot(generaciones, costos_peor, label='Peor Costo')
+    plt.plot(generaciones, costos_promedio, label='Promedio Costo')
+    plt.xlabel('Generaciones')
+    plt.ylabel('Costo Total')
+    plt.title('Evolución del Costo a lo largo de las Generaciones')
+    plt.legend()
+    costo_grafica_path = os.path.join('static', 'grafica_costos.png')
+    plt.savefig(costo_grafica_path)
+
+    return tiempo_grafica_path, costo_grafica_path
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        cantidadActividades = int(request.form['cantidadActividades'])
-        actividadesSeleccionadas = request.form.getlist('actividad')
+        cantidad_actividades = int(request.form['cantidadActividades'])
+        actividades_seleccionadas = request.form.getlist('actividad')
 
-        actividades = [ACTIVIDADES_LIMPIEZA[int(index)] for index in actividadesSeleccionadas]
+        actividades = [ACTIVIDADES_LIMPIEZA[int(index)] for index in actividades_seleccionadas]
 
-        peorIndividuo, individuoAleatorio, mejorIndividuo, evolucion, mejoresIndividuos = algoritmoGenetico(
-            tamanoPoblacion=10, 
+        peor_individuo, individuo_aleatorio, mejor_individuo, mejores_individuos, evolucion_tiempos, evolucion_costos = algoritmo_genetico(
+            tamano_poblacion=10, 
             actividades=actividades, 
             generaciones=50, 
-            tasaMutacion=0.1
+            tasa_mutacion=0.1
         )
 
-        peor = calcularDatos(actividades, 1, peor=True)
-        intermedio = calcularDatos(actividades, random.randint(2, 3))
-        mejor = calcularDatos(actividades, random.randint(3, 5))
+        peor = calcular_datos(actividades, 1, peor=True)
+        intermedio = calcular_datos(actividades, random.randint(2, 3))
+        mejor = calcular_datos(actividades, random.randint(3, 5))
+
+        tiempo_grafica_path, costo_grafica_path = graficar_evolucion(evolucion_tiempos, evolucion_costos)
 
         return jsonify({
             'solucion_un_empleado': peor,
             'solucion_intermedia': intermedio,
-            'mejor_solucion': mejor
+            'mejor_solucion': mejor,
+            'grafica_tiempos_path': tiempo_grafica_path,
+            'grafica_costos_path': costo_grafica_path
         })
 
     return render_template('index.html', actividades=ACTIVIDADES_LIMPIEZA)

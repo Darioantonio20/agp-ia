@@ -11,7 +11,7 @@
     
     <div class="container">
         <h2>Actividades y Costos Unitarios</h2>
-        <table>
+        <table class="tablec">
             <thead>
                 <tr>
                     <th>Actividad</th>
@@ -63,8 +63,8 @@
             <tbody>
                 <tr>
                     <td>Peor Empleado</td>
-                    <td id="actividades_un_empleado" class="align-left"></td>
-                    <td id="productos_un_empleado" class="align-left"></td>
+                    <td id="actividades_un_empleado"></td>
+                    <td id="productos_un_empleado"></td>
                     <td id="personal_un_empleado"></td>
                     <td id="tiempo_un_empleado"></td>
                     <td id="costo_un_empleado"></td>
@@ -72,8 +72,8 @@
                 </tr>
                 <tr>
                     <td>Empleado Promedio</td>
-                    <td id="actividades_intermedia" class="align-left"></td>
-                    <td id="productos_intermedia" class="align-left"></td>
+                    <td id="actividades_intermedia"></td>
+                    <td id="productos_intermedia"></td>
                     <td id="personal_intermedia"></td>
                     <td id="tiempo_intermedia"></td>
                     <td id="costo_intermedia"></td>
@@ -81,8 +81,8 @@
                 </tr>
                 <tr>
                     <td>Mejor Empleado</td>
-                    <td id="actividades_mejor" class="align-left"></td>
-                    <td id="productos_mejor" class="align-left"></td>
+                    <td id="actividades_mejor"></td>
+                    <td id="productos_mejor"></td>
                     <td id="personal_mejor"></td>
                     <td id="tiempo_mejor"></td>
                     <td id="costo_mejor"></td>
@@ -90,6 +90,15 @@
                 </tr>
             </tbody>
         </table>
+
+        <div>
+            <h2 class="thCenter">Evolución del Tiempo</h2>
+            <img id="grafica_tiempos" src="" alt="Gráfica de la Evolución del Tiempo">
+        </div>
+        <div>
+            <h2 class="thCenter">Evolución del Costo</h2>
+            <img id="grafica_costos" src="" alt="Gráfica de la Evolución del Costo">
+        </div>
     </div>
 
     <script>
@@ -149,26 +158,29 @@
             .then(data => {
                 document.getElementById('resultados').style.display = 'block';
 
-                document.getElementById('actividades_un_empleado').innerHTML = data.solucion_un_empleado.actividades.map(a => `<li>${a}</li>`).join('');
-                document.getElementById('productos_un_empleado').innerHTML = data.solucion_un_empleado.productos.map(p => `<li>${p}</li>`).join('');
+                document.getElementById('actividades_un_empleado').textContent = data.solucion_un_empleado.actividades.join('\n');
+                document.getElementById('productos_un_empleado').textContent = data.solucion_un_empleado.productos.join('\n');
                 document.getElementById('personal_un_empleado').textContent = data.solucion_un_empleado.personal_requerido;
                 document.getElementById('tiempo_un_empleado').textContent = data.solucion_un_empleado.tiempo_total;
                 document.getElementById('costo_un_empleado').textContent = data.solucion_un_empleado.costo_total;
                 document.getElementById('satisfactorio_un_empleado').textContent = data.solucion_un_empleado.satisfactorio;
 
-                document.getElementById('actividades_intermedia').innerHTML = data.solucion_intermedia.actividades.map(a => `<li>${a}</li>`).join('');
-                document.getElementById('productos_intermedia').innerHTML = data.solucion_intermedia.productos.map(p => `<li>${p}</li>`).join('');
+                document.getElementById('actividades_intermedia').textContent = data.solucion_intermedia.actividades.join('\n');
+                document.getElementById('productos_intermedia').textContent = data.solucion_intermedia.productos.join('\n');
                 document.getElementById('personal_intermedia').textContent = data.solucion_intermedia.personal_requerido;
                 document.getElementById('tiempo_intermedia').textContent = data.solucion_intermedia.tiempo_total;
                 document.getElementById('costo_intermedia').textContent = data.solucion_intermedia.costo_total;
                 document.getElementById('satisfactorio_intermedia').textContent = data.solucion_intermedia.satisfactorio;
 
-                document.getElementById('actividades_mejor').innerHTML = data.mejor_solucion.actividades.map(a => `<li>${a}</li>`).join('');
-                document.getElementById('productos_mejor').innerHTML = data.mejor_solucion.productos.map(p => `<li>${p}</li>`).join('');
+                document.getElementById('actividades_mejor').textContent = data.mejor_solucion.actividades.join('\n');
+                document.getElementById('productos_mejor').textContent = data.mejor_solucion.productos.join('\n');
                 document.getElementById('personal_mejor').textContent = data.mejor_solucion.personal_requerido;
                 document.getElementById('tiempo_mejor').textContent = data.mejor_solucion.tiempo_total;
                 document.getElementById('costo_mejor').textContent = data.mejor_solucion.costo_total;
                 document.getElementById('satisfactorio_mejor').textContent = data.mejor_solucion.satisfactorio;
+
+                document.getElementById('grafica_tiempos').src = data.grafica_tiempos_path;
+                document.getElementById('grafica_costos').src = data.grafica_costos_path;
             });
         });
     </script>
