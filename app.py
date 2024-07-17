@@ -37,15 +37,14 @@ class Individuo:
     def evaluarAptitud(self):
         return -(self.tiempo + self.costo + self.personal)
 
-def crearIndividuo(cantidadActividades):
-    actividades = random.sample(ACTIVIDADES_LIMPIEZA, cantidadActividades)
+def crearIndividuo(actividades):
     personal = max(1, sum([actividad['tiempo'] for actividad in actividades]) // 60)
     tiempo = sum([actividad['tiempo'] for actividad in actividades])
     costo = sum([actividad['costo'] for actividad in actividades])
     return Individuo(actividades, personal, tiempo, costo)
 
-def crearPoblacion(tamano, cantidadActividades):
-    return [crearIndividuo(cantidadActividades) for _ in range(tamano)]
+def crearPoblacion(tamano, actividades):
+    return [crearIndividuo(actividades) for _ in range(tamano)]
 
 def seleccionarPadres(poblacion):
     poblacion.sort(key=lambda x: x.aptitud, reverse=True)
@@ -55,18 +54,18 @@ def cruce(padre1, padre2):
     puntoCruce = random.randint(1, len(padre1.actividades) - 1)
     hijo1Actividades = padre1.actividades[:puntoCruce] + padre2.actividades[puntoCruce:]
     hijo2Actividades = padre2.actividades[:puntoCruce] + padre1.actividades[puntoCruce:]
-    return crearIndividuo(len(hijo1Actividades)), crearIndividuo(len(hijo2Actividades))
+    return crearIndividuo(hijo1Actividades), crearIndividuo(hijo2Actividades)
 
-def mutar(individuo, tasaMutacion):
+def mutar(individuo, tasaMutacion, actividades):
     if random.random() < tasaMutacion:
-        individuo.actividades = random.sample(ACTIVIDADES_LIMPIEZA, len(individuo.actividades))
+        individuo.actividades = random.sample(actividades, len(individuo.actividades))
         individuo.personal = max(1, sum([actividad['tiempo'] for actividad in individuo.actividades]) // 60)
         individuo.tiempo = sum([actividad['tiempo'] for actividad in individuo.actividades])
         individuo.costo = sum([actividad['costo'] for actividad in individuo.actividades])
         individuo.aptitud = individuo.evaluarAptitud()
 
-def algoritmoGenetico(tamanoPoblacion, cantidadActividades, generaciones, tasaMutacion):
-    poblacion = crearPoblacion(tamanoPoblacion, cantidadActividades)
+def algoritmoGenetico(tamanoPoblacion, actividades, generaciones, tasaMutacion):
+    poblacion = crearPoblacion(tamanoPoblacion, actividades)
     evolucionMejorAptitud = []
 
     for generacion in range(generaciones):
@@ -74,18 +73,36 @@ def algoritmoGenetico(tamanoPoblacion, cantidadActividades, generaciones, tasaMu
         descendencia = []
         while len(descendencia) < tamanoPoblacion:
             hijo1, hijo2 = cruce(padres[0], padres[1])
-            mutar(hijo1, tasaMutacion)
-            mutar(hijo2, tasaMutacion)
+            mutar(hijo1, tasaMutacion, actividades)
+            mutar(hijo2, tasaMutacion, actividades)
             descendencia.append(hijo1)
             descendencia.append(hijo2)
         poblacion = descendencia
         mejorIndividuo = max(poblacion, key=lambda x: x.aptitud)
+        peorIndividuo = min(poblacion, key=lambda x: x.aptitud)
         evolucionMejorAptitud.append(mejorIndividuo.aptitud)
         print(f"Generación {generacion}: Mejor Aptitud = {mejorIndividuo.aptitud}")
 
     mejoresIndividuos = sorted(poblacion, key=lambda x: x.aptitud, reverse=True)[:3]
+    individuoAleatorio = random.choice(poblacion)
 
-    return mejorIndividuo, evolucionMejorAptitud, mejoresIndividuos
+    return peorIndividuo, individuoAleatorio, mejorIndividuo, evolucionMejorAptitud, mejoresIndividuos
+
+def calcularDatos(actividades, personal):
+    tiempoTotal = sum([actividad['tiempo'] for actividad in actividades])
+    costoTotal = sum([actividad['costo'] for actividad in actividades]) * personal
+    productosNecesarios = set([actividad['equipo'] for actividad in actividades])
+
+    satisfactorio = 'Sí' if tiempoTotal // personal <= tiempoTotal else 'No'
+
+    return {
+        'actividades': [actividad['actividad'] for actividad in actividades],
+        'productos': list(productosNecesarios),
+        'tiempo_total': tiempoTotal // personal,
+        'costo_total': costoTotal,
+        'personal_requerido': personal,
+        'satisfactorio': satisfactorio
+    }
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -95,26 +112,25 @@ def index():
 
         actividades = [ACTIVIDADES_LIMPIEZA[int(index)] for index in actividadesSeleccionadas]
 
-        mejorSolucion, evolucion, mejoresIndividuos = algoritmoGenetico(
+        peorIndividuo, individuoAleatorio, mejorIndividuo, evolucion, mejoresIndividuos = algoritmoGenetico(
             tamanoPoblacion=10, 
-            cantidadActividades=cantidadActividades, 
+            actividades=actividades, 
             generaciones=50, 
             tasaMutacion=0.1
         )
 
-        actividadesSeleccionadas = [actividad['actividad'] for actividad in mejorSolucion.actividades]
-        productosNecesarios = set([actividad['equipo'] for actividad in mejorSolucion.actividades])
-        tiempoTotal = mejorSolucion.tiempo
-        costoTotal = mejorSolucion.costo
-        personalRequerido = mejorSolucion.personal
+        peor = calcularDatos(actividades, 1)
+        intermedio = calcularDatos(actividades, random.randint(2, 3))
+        mejor = calcularDatos(actividades, random.randint(3, 5))
+
+        peor['satisfactorio'] = 'Sí' if peor['tiempo_total'] <= peor['tiempo_total'] else 'No'
+        intermedio['satisfactorio'] = 'Sí' if intermedio['tiempo_total'] <= intermedio['tiempo_total'] else 'No'
+        mejor['satisfactorio'] = 'Sí' if mejor['tiempo_total'] <= mejor['tiempo_total'] else 'No'
 
         return jsonify({
-            'actividades': actividadesSeleccionadas,
-            'productos': list(productosNecesarios),
-            'tiempo_total': tiempoTotal,
-            'costo_total': costoTotal,
-            'personal_requerido': personalRequerido,
-            'evolucion': evolucion
+            'solucion_un_empleado': peor,
+            'solucion_intermedia': intermedio,
+            'mejor_solucion': mejor
         })
 
     return render_template('index.html', actividades=ACTIVIDADES_LIMPIEZA)

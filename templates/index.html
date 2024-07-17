@@ -47,26 +47,46 @@
     </form>
 
     <div id="resultados" class="container" style="display: none;">
+        <h2 class="thCenter">Mejor Solución</h2>
         <table class="tablec">
             <thead>
                 <tr>
-                    <h2 class="thCenter">Mejor Solución</h2>
-                </tr>
-                <tr>
-                    <th>Actividades</th>
-                    <th>Productos</th>
+                    <th>Empleado</th>
+                    <th class="left-align">Actividades</th>
+                    <th class="left-align">Productos</th>
                     <th>Personal Requerido</th>
                     <th>Tiempo Total (minutos)</th>
                     <th>Costo Total (MXN)</th>
+                    <th>Satisfactorio</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td id="actividades"></td>
-                    <td id="productos"></td>
-                    <td id="personal"></td>
-                    <td id="tiempo"></td>
-                    <td id="costo"></td>
+                    <td>Peor Empleado</td>
+                    <td id="actividades_un_empleado" class="left-align"></td>
+                    <td id="productos_un_empleado" class="left-align"></td>
+                    <td id="personal_un_empleado"></td>
+                    <td id="tiempo_un_empleado"></td>
+                    <td id="costo_un_empleado"></td>
+                    <td id="satisfactorio_un_empleado"></td>
+                </tr>
+                <tr>
+                    <td>Empleado Promedio</td>
+                    <td id="actividades_intermedia" class="left-align"></td>
+                    <td id="productos_intermedia" class="left-align"></td>
+                    <td id="personal_intermedia"></td>
+                    <td id="tiempo_intermedia"></td>
+                    <td id="costo_intermedia"></td>
+                    <td id="satisfactorio_intermedia"></td>
+                </tr>
+                <tr>
+                    <td>Mejor Empleado</td>
+                    <td id="actividades_mejor" class="left-align"></td>
+                    <td id="productos_mejor" class="left-align"></td>
+                    <td id="personal_mejor"></td>
+                    <td id="tiempo_mejor"></td>
+                    <td id="costo_mejor"></td>
+                    <td id="satisfactorio_mejor"></td>
                 </tr>
             </tbody>
         </table>
@@ -128,11 +148,27 @@
             .then(response => response.json())
             .then(data => {
                 document.getElementById('resultados').style.display = 'block';
-                document.getElementById('actividades').textContent = data.actividades.join(', ');
-                document.getElementById('productos').textContent = data.productos.join(', ');
-                document.getElementById('personal').textContent = data.personal_requerido;
-                document.getElementById('tiempo').textContent = data.tiempo_total;
-                document.getElementById('costo').textContent = data.costo_total;
+
+                document.getElementById('actividades_un_empleado').innerHTML = data.solucion_un_empleado.actividades.map(a => `<li>${a}</li>`).join('');
+                document.getElementById('productos_un_empleado').innerHTML = data.solucion_un_empleado.productos.map(p => `<li>${p}</li>`).join('');
+                document.getElementById('personal_un_empleado').textContent = data.solucion_un_empleado.personal_requerido;
+                document.getElementById('tiempo_un_empleado').textContent = data.solucion_un_empleado.tiempo_total;
+                document.getElementById('costo_un_empleado').textContent = data.solucion_un_empleado.costo_total;
+                document.getElementById('satisfactorio_un_empleado').textContent = data.solucion_un_empleado.satisfactorio;
+
+                document.getElementById('actividades_intermedia').innerHTML = data.solucion_intermedia.actividades.map(a => `<li>${a}</li>`).join('');
+                document.getElementById('productos_intermedia').innerHTML = data.solucion_intermedia.productos.map(p => `<li>${p}</li>`).join('');
+                document.getElementById('personal_intermedia').textContent = data.solucion_intermedia.personal_requerido;
+                document.getElementById('tiempo_intermedia').textContent = data.solucion_intermedia.tiempo_total;
+                document.getElementById('costo_intermedia').textContent = data.solucion_intermedia.costo_total;
+                document.getElementById('satisfactorio_intermedia').textContent = data.solucion_intermedia.satisfactorio;
+
+                document.getElementById('actividades_mejor').innerHTML = data.mejor_solucion.actividades.map(a => `<li>${a}</li>`).join('');
+                document.getElementById('productos_mejor').innerHTML = data.mejor_solucion.productos.map(p => `<li>${p}</li>`).join('');
+                document.getElementById('personal_mejor').textContent = data.mejor_solucion.personal_requerido;
+                document.getElementById('tiempo_mejor').textContent = data.mejor_solucion.tiempo_total;
+                document.getElementById('costo_mejor').textContent = data.mejor_solucion.costo_total;
+                document.getElementById('satisfactorio_mejor').textContent = data.mejor_solucion.satisfactorio;
             });
         });
     </script>
