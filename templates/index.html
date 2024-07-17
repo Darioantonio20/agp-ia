@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Optimización de Recursos y Tareas</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <h1>Sistema de Optimización de Recursos y Tareas</h1>
@@ -35,21 +34,42 @@
     </div>
     
     <form id="formulario-datos" method="POST" class="formulario-centrado">
-        <input type="number" class="input" placeholder="Número de cantidad de actividades" id="cantidadActividades" name="cantidadActividades" required><br>
-        <button type="button" id="generar-actividades">Generar Actividades</button><br>
+        <div class="row">
+            <div class="column">
+                <input type="number" class="input" placeholder="Número de actividades" id="cantidadActividades" name="cantidadActividades" required>
+            </div>
+            <div class="column">
+                <button type="button" class="marginB" id="generar-actividades">Generar Actividades</button>
+            </div>
+        </div>
         <div id="inputs-actividades"></div>
-        <button type="submit">Enviar Datos</button>
+        <button class="buttonE">Enviar Datos</button>
     </form>
 
-    <div id="resultados" style="display: none;">
-        <h2>Mejor Solución</h2>
-        <p id="mejor-solucion"></p>
-
-        <h2>Evolución de la Aptitud</h2>
-        <canvas id="grafico-evolucion"></canvas>
-
-        <h2>Mejores Individuos</h2>
-        <div id="mejores-individuos"></div>
+    <div id="resultados" class="container" style="display: none;">
+        <table class="tablec">
+            <thead>
+                <tr>
+                    <h2 class="thCenter">Mejor Solución</h2>
+                </tr>
+                <tr>
+                    <th>Actividades</th>
+                    <th>Productos</th>
+                    <th>Personal Requerido</th>
+                    <th>Tiempo Total (minutos)</th>
+                    <th>Costo Total (MXN)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="actividades"></td>
+                    <td id="productos"></td>
+                    <td id="personal"></td>
+                    <td id="tiempo"></td>
+                    <td id="costo"></td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
     <script>
@@ -63,7 +83,15 @@
             for (let i = 0; i < cantidadActividades; i++) {
                 const select = document.createElement('select');
                 select.name = 'actividad';
-                select.classList.add('input');  // Añadir la clase "input" aquí
+                select.classList.add('input'); 
+                select.addEventListener('change', validarActividades);
+
+                const optionDefault = document.createElement('option');
+                optionDefault.value = '';
+                optionDefault.textContent = 'Seleccionar';
+                optionDefault.disabled = true;
+                optionDefault.selected = true;
+                select.appendChild(optionDefault);
 
                 actividades.forEach(function(actividad) {
                     const option = document.createElement('option');
@@ -77,6 +105,17 @@
             }
         });
 
+        function validarActividades() {
+            const selects = document.querySelectorAll('select[name="actividad"]');
+            const seleccionados = Array.from(selects).map(select => select.value);
+            
+            selects.forEach(select => {
+                Array.from(select.options).forEach(option => {
+                    option.disabled = seleccionados.includes(option.value) && option.value !== select.value;
+                });
+            });
+        }
+
         document.getElementById('formulario-datos').addEventListener('submit', function(event) {
             event.preventDefault();
             fetch('/', {
@@ -89,80 +128,11 @@
             .then(response => response.json())
             .then(data => {
                 document.getElementById('resultados').style.display = 'block';
-                document.getElementById('mejor-solucion').innerHTML = `
-                    Actividades: ${data.actividades.join(', ')}<br>
-                    Productos: ${data.productos.join(', ')}<br>
-                    Personal requerido: ${data.personal_requerido}<br>
-                    Tiempo total: ${data.tiempo_total} minutos<br>
-                    Costo total: ${data.costo_total} MXN
-                `;
-
-                const ctx = document.getElementById('grafico-evolucion').getContext('2d');
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: Array.from({length: data.evolucion.length}, (_, i) => i + 1),
-                        datasets: [{
-                            label: 'Aptitud',
-                            data: data.evolucion,
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            borderWidth: 1,
-                            fill: false
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        scales: {
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Generaciones'
-                                }
-                            },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: 'Aptitud'
-                                }
-                            }
-                        }
-                    }
-                });
-
-                const mejoresIndividuosDiv = document.getElementById('mejores-individuos');
-                mejoresIndividuosDiv.innerHTML = '';
-                data.mejoresIndividuos.forEach((individuo, index) => {
-                    const individuoCanvas = document.createElement('canvas');
-                    individuoCanvas.id = `grafico-individuo-${index + 1}`;
-                    mejoresIndividuosDiv.appendChild(individuoCanvas);
-                    new Chart(individuoCanvas.getContext('2d'), {
-                        type: 'bar',
-                        data: {
-                            labels: ['Tareas', 'Productos', 'Personal', 'Tiempo', 'Costo'],
-                            datasets: [{
-                                label: `Individuo ${index + 1}`,
-                                data: [
-                                    individuo.actividades.length,
-                                    new Set(individuo.productos).size,
-                                    individuo.personal,
-                                    individuo.tiempo,
-                                    individuo.costo
-                                ],
-                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                                borderColor: 'rgba(54, 162, 235, 1)',
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            scales: {
-                                y: {
-                                    beginAtZero: true
-                                }
-                            }
-                        }
-                    });
-                });
+                document.getElementById('actividades').textContent = data.actividades.join(', ');
+                document.getElementById('productos').textContent = data.productos.join(', ');
+                document.getElementById('personal').textContent = data.personal_requerido;
+                document.getElementById('tiempo').textContent = data.tiempo_total;
+                document.getElementById('costo').textContent = data.costo_total;
             });
         });
     </script>

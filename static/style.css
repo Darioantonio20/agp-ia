@@ -64,6 +64,12 @@ table {
   border-collapse: collapse;
 }
 
+.thCenter{
+  text-align: center;
+  font-size: 3rem;
+  color: #999;
+}
+
 th, td {
   padding: 8px;
   text-align: left; 
@@ -161,7 +167,7 @@ th:nth-child(4), td:nth-child(4) {
     justify-content: center;
     outline: none;
     cursor: pointer;
-    width: 20em;
+    width: 13em;
     height: 4em;
     background-image: linear-gradient(to top, #D8D9DB 0%, #fff 80%, #FDFDFD 100%);
     border-radius: 30px;
@@ -172,19 +178,75 @@ th:nth-child(4), td:nth-child(4) {
     font-weight: 600;
     color: #606060;
     text-shadow: 0 1px #fff;
+    margin-left: 22px;
   }
   
   button:hover {
-    box-shadow: 0 4px 3px 1px #FCFCFC, 0 6px 8px #D6D7D9, 0 -4px 4px #CECFD1, 0 -6px 4px #FEFEFE, inset 0 0 3px 3px #CECFD1;
+    box-shadow: 0 4px 3px 1px #1F2739, 0 6px 8px #D6D7D9, 0 -4px 4px #CECFD1, 0 -6px 4px #FEFEFE, inset 0 0 3px 3px #CECFD1;
   }
   
   button:active {
-    box-shadow: 0 4px 3px 1px #FCFCFC, 0 6px 8px #D6D7D9, 0 -4px 4px #CECFD1, 0 -6px 4px #FEFEFE, inset 0 0 5px 3px #999, inset 0 0 30px #aaa;
+    box-shadow: 0 4px 3px 1px #1F2739, 0 6px 8px #D6D7D9, 0 -4px 4px #CECFD1, 0 -6px 4px #FEFEFE, inset 0 0 5px 3px #999, inset 0 0 30px #aaa;
   }
   
   button:focus {
-    box-shadow: 0 4px 3px 1px #FCFCFC, 0 6px 8px #D6D7D9, 0 -4px 4px #CECFD1, 0 -6px 4px #FEFEFE, inset 0 0 5px 3px #999, inset 0 0 30px #aaa;
+    box-shadow: 0 4px 3px 1px #1F2739, 0 6px 8px #D6D7D9, 0 -4px 4px #CECFD1, 0 -6px 4px #FEFEFE, inset 0 0 5px 3px #999, inset 0 0 30px #aaa;
   }
   
   
+  /*--------------------------------------*/
+
+  .tablec{
+    width: 100%; 
+    border-collapse: collapse; 
+  }
   
+  .container {
+    width: 80%; 
+    margin: auto;
+}
+
+  th, td {
+    text-align: center;
+    padding: 8px; 
+  }
+
+  th {
+    background-color: #f2f2f2; 
+  }
+
+  /*--------------------------------------*/
+
+  .row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.column {
+    flex: 50%; /* Ajusta el porcentaje según necesites */
+    padding: 0.3125rem; /* Espaciado entre las columnas */
+}
+.marginB{
+  margin-top: 2rem;
+}
+/*--------------------------------------*/
+
+.buttonE {
+  font-family: monospace;
+  font-size: 1.1rem;
+  color: #FAFAFA;
+  text-transform: uppercase;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 2px solid #FAFAFA;
+  background: #3b9167;
+  box-shadow: 3px 3px #187562;
+  cursor: pointer;
+  margin: 35px 0;
+}
+
+.buttonE:active {
+  box-shadow: none;
+  transform: translate(3px, 3px);
+}
