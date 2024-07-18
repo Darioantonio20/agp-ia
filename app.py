@@ -1,10 +1,8 @@
 import random
-import os
+from flask import Flask, render_template, request, jsonify, url_for
 import matplotlib.pyplot as plt
-from flask import Flask, render_template, request, jsonify
-
-# Configurar Matplotlib para usar el backend 'Agg'
-plt.switch_backend('Agg')
+import matplotlib
+matplotlib.use('Agg')
 
 app = Flask(__name__)
 
@@ -44,7 +42,7 @@ class Individuo:
         return personal, tiempo_total, costo_total
 
     def evaluar_aptitud(self):
-        return -(self.tiempo + self.costo + self.personal * 100)
+        return self.tiempo + self.costo + self.personal * 100
 
 def crear_individuo(actividades):
     return Individuo(actividades)
@@ -53,7 +51,7 @@ def crear_poblacion(tamano, actividades):
     return [crear_individuo(random.sample(actividades, len(actividades))) for _ in range(tamano)]
 
 def seleccionar_padres(poblacion):
-    poblacion.sort(key=lambda x: x.aptitud, reverse=True)
+    poblacion.sort(key=lambda x: x.aptitud)
     return poblacion[:2]
 
 def cruce(padre1, padre2):
@@ -70,6 +68,7 @@ def mutar(individuo, tasa_mutacion, actividades):
 
 def algoritmo_genetico(tamano_poblacion, actividades, generaciones, tasa_mutacion):
     poblacion = crear_poblacion(tamano_poblacion, actividades)
+    evolucion_mejor_aptitud = []
     evolucion_tiempos = []
     evolucion_costos = []
 
@@ -83,26 +82,26 @@ def algoritmo_genetico(tamano_poblacion, actividades, generaciones, tasa_mutacio
             descendencia.append(hijo1)
             descendencia.append(hijo2)
         poblacion = descendencia
-        mejor_individuo = max(poblacion, key=lambda x: x.aptitud)
-        peor_individuo = min(poblacion, key=lambda x: x.aptitud)
-        promedio_individuo = sum(individuo.aptitud for individuo in poblacion) / len(poblacion)
 
-        evolucion_tiempos.append((mejor_individuo.tiempo, peor_individuo.tiempo, promedio_individuo))
-        evolucion_costos.append((mejor_individuo.costo, peor_individuo.costo, promedio_individuo))
+        mejor_individuo = min(poblacion, key=lambda x: x.aptitud)
+        peor_individuo = max(poblacion, key=lambda x: x.aptitud)
+        tiempo_promedio = sum(individuo.tiempo for individuo in poblacion) / len(poblacion)
+        costo_promedio = sum(individuo.costo for individuo in poblacion) / len(poblacion)
+
+        evolucion_mejor_aptitud.append(mejor_individuo.aptitud)
+        evolucion_tiempos.append((mejor_individuo.tiempo, tiempo_promedio, peor_individuo.tiempo))
+        evolucion_costos.append((mejor_individuo.costo, costo_promedio, peor_individuo.costo))
 
         print(f"Generación {generacion}: Mejor Aptitud = {mejor_individuo.aptitud}")
 
-    mejores_individuos = sorted(poblacion, key=lambda x: x.aptitud, reverse=True)[:3]
-    individuo_aleatorio = random.choice(poblacion)
-
-    return peor_individuo, individuo_aleatorio, mejor_individuo, mejores_individuos, evolucion_tiempos, evolucion_costos
+    return peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos
 
 def calcular_datos(actividades, personal, peor=False):
     tiempo_total = sum([actividad['tiempo'] for actividad in actividades])
     costo_total = sum([actividad['costo'] for actividad in actividades]) * personal
     productos_necesarios = set([actividad['equipo'] for actividad in actividades])
 
-    if peor and len(actividades) > 5 and random.random() < 0.8:
+    if peor and len(actividades) > 5:
         satisfactorio = 'No'
     else:
         satisfactorio = 'Sí' if tiempo_total // personal <= tiempo_total else 'No'
@@ -116,36 +115,6 @@ def calcular_datos(actividades, personal, peor=False):
         'satisfactorio': satisfactorio
     }
 
-def graficar_evolucion(evolucion_tiempos, evolucion_costos):
-    generaciones = range(len(evolucion_tiempos))
-
-    tiempos_mejor, tiempos_peor, tiempos_promedio = zip(*evolucion_tiempos)
-    costos_mejor, costos_peor, costos_promedio = zip(*evolucion_costos)
-
-    plt.figure()
-    plt.plot(generaciones, tiempos_mejor, label='Mejor Tiempo')
-    plt.plot(generaciones, tiempos_peor, label='Peor Tiempo')
-    plt.plot(generaciones, tiempos_promedio, label='Promedio Tiempo')
-    plt.xlabel('Generaciones')
-    plt.ylabel('Tiempo Total')
-    plt.title('Evolución del Tiempo a lo largo de las Generaciones')
-    plt.legend()
-    tiempo_grafica_path = os.path.join('static', 'grafica_tiempos.png')
-    plt.savefig(tiempo_grafica_path)
-
-    plt.figure()
-    plt.plot(generaciones, costos_mejor, label='Mejor Costo')
-    plt.plot(generaciones, costos_peor, label='Peor Costo')
-    plt.plot(generaciones, costos_promedio, label='Promedio Costo')
-    plt.xlabel('Generaciones')
-    plt.ylabel('Costo Total')
-    plt.title('Evolución del Costo a lo largo de las Generaciones')
-    plt.legend()
-    costo_grafica_path = os.path.join('static', 'grafica_costos.png')
-    plt.savefig(costo_grafica_path)
-
-    return tiempo_grafica_path, costo_grafica_path
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -154,25 +123,53 @@ def index():
 
         actividades = [ACTIVIDADES_LIMPIEZA[int(index)] for index in actividades_seleccionadas]
 
-        peor_individuo, individuo_aleatorio, mejor_individuo, mejores_individuos, evolucion_tiempos, evolucion_costos = algoritmo_genetico(
+        peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos = algoritmo_genetico(
             tamano_poblacion=10, 
             actividades=actividades, 
             generaciones=50, 
             tasa_mutacion=0.1
         )
 
-        peor = calcular_datos(actividades, 1, peor=True)
-        intermedio = calcular_datos(actividades, random.randint(2, 3))
-        mejor = calcular_datos(actividades, random.randint(3, 5))
+        peor = calcular_datos(peor_individuo.actividades, 1, peor=True)
+        intermedio = calcular_datos(mejor_individuo.actividades, random.randint(2, 3))
+        mejor = calcular_datos(mejor_individuo.actividades, random.randint(3, 5))
 
-        tiempo_grafica_path, costo_grafica_path = graficar_evolucion(evolucion_tiempos, evolucion_costos)
+        generaciones = list(range(50))
+
+        plt.figure(figsize=(14, 7))
+
+        plt.subplot(1, 2, 1)
+        tiempos_mejor = [t[0] for t in evolucion_tiempos]
+        tiempos_promedio = [t[1] for t in evolucion_tiempos]
+        tiempos_peor = [t[2] for t in evolucion_tiempos]
+        plt.plot(generaciones, tiempos_mejor, label='Mejor Tiempo')
+        plt.plot(generaciones, tiempos_promedio, label='Tiempo Promedio')
+        plt.plot(generaciones, tiempos_peor, label='Peor Tiempo')
+        plt.xlabel('Generaciones')
+        plt.ylabel('Tiempo Total')
+        plt.legend()
+
+        plt.subplot(1, 2, 2)
+        costos_mejor = [c[0] for c in evolucion_costos]
+        costos_promedio = [c[1] for c in evolucion_costos]
+        costos_peor = [c[2] for c in evolucion_costos]
+        plt.plot(generaciones, costos_mejor, label='Mejor Costo')
+        plt.plot(generaciones, costos_promedio, label='Costo Promedio')
+        plt.plot(generaciones, costos_peor, label='Peor Costo')
+        plt.xlabel('Generaciones')
+        plt.ylabel('Costo Total')
+        plt.legend()
+
+        plt.tight_layout()
+        plt.savefig('static/grafica_evolucion.png')
+        plt.close()
 
         return jsonify({
             'solucion_un_empleado': peor,
             'solucion_intermedia': intermedio,
-            'mejor_solucion': mejor,
-            'grafica_tiempos_path': tiempo_grafica_path,
-            'grafica_costos_path': costo_grafica_path
+            'solucion_mejor': mejor,
+            'grafica_tiempos_path': url_for('static', filename='grafica_tiempos.png'),
+            'grafica_costos_path': url_for('static', filename='grafica_costos.png')
         })
 
     return render_template('index.html', actividades=ACTIVIDADES_LIMPIEZA)
