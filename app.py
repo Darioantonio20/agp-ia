@@ -28,7 +28,6 @@ ACTIVIDADES_LIMPIEZA = [
     {'posicion': 18, 'actividad': 'Limpieza de hospitales', 'equipo': 'Desinfectante y trapo', 'costo': 100, 'tiempo': 90},
     {'posicion': 19, 'actividad': 'Limpieza de tiendas y centros comerciales', 'equipo': 'Aspiradora y trapeador', 'costo': 70, 'tiempo': 90}
 ]
-
 class Individuo:
     def __init__(self, actividades):
         self.actividades = actividades
@@ -124,17 +123,17 @@ def index():
         actividades = [ACTIVIDADES_LIMPIEZA[int(index)] for index in actividades_seleccionadas]
 
         peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos = algoritmo_genetico(
-            tamano_poblacion=10, 
+            tamano_poblacion=20, 
             actividades=actividades, 
-            generaciones=50, 
-            tasa_mutacion=0.1
+            generaciones=100, 
+            tasa_mutacion=0.01
         )
 
         peor = calcular_datos(peor_individuo.actividades, 1, peor=True)
         intermedio = calcular_datos(mejor_individuo.actividades, random.randint(2, 3))
         mejor = calcular_datos(mejor_individuo.actividades, random.randint(3, 5))
 
-        generaciones = list(range(50))
+        generaciones = list(range(100))
 
         plt.figure(figsize=(14, 7))
 
@@ -147,6 +146,7 @@ def index():
         plt.plot(generaciones, tiempos_peor, label='Peor Tiempo')
         plt.xlabel('Generaciones')
         plt.ylabel('Tiempo Total')
+        plt.ylim(0, max(tiempos_peor) + 10)  # Asegurando que los valores sean positivos
         plt.legend()
 
         plt.subplot(1, 2, 2)
@@ -158,6 +158,7 @@ def index():
         plt.plot(generaciones, costos_peor, label='Peor Costo')
         plt.xlabel('Generaciones')
         plt.ylabel('Costo Total')
+        plt.ylim(0, max(costos_peor) + 10)  # Asegurando que los valores sean positivos
         plt.legend()
 
         plt.tight_layout()
@@ -168,8 +169,8 @@ def index():
             'solucion_un_empleado': peor,
             'solucion_intermedia': intermedio,
             'solucion_mejor': mejor,
-            'grafica_tiempos_path': url_for('static', filename='grafica_tiempos.png'),
-            'grafica_costos_path': url_for('static', filename='grafica_costos.png')
+            'grafica_tiempos_path': url_for('static', filename='grafica_evolucion.png'),
+            'grafica_costos_path': url_for('static', filename='grafica_evolucion.png')
         })
 
     return render_template('index.html', actividades=ACTIVIDADES_LIMPIEZA)
