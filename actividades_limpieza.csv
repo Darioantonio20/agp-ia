@@ -1,0 +1,21 @@
+posicion,actividad,equipo,costo,tiempo
+0,Barrer,Escoba,20,15
+1,Trapear,Trapeador y cubo,25,20
+2,Limpiar ventanas,Limpiavidrios y trapo,35,30
+3,Sacar la basura,Bolsas de basura,10,10
+4,Desinfectar superficies,Desinfectante y trapo,40,25
+5,Aspirar alfombras y tapetes,Aspiradora,30,30
+6,Limpieza de baños,Cepillo de baño y desinfectante,45,40
+7,Limpieza de cocinas,Desengrasante y trapo,45,45
+8,Limpieza de muebles,Trapo y pulidor de muebles,20,20
+9,Limpieza de electrodomésticos,Trapo y limpiador multiusos,35,30
+10,Limpieza de oficinas,Aspiradora y trapo,50,60
+11,Limpieza de áreas comunes,Trapeador y cubo,40,45
+12,Limpieza de ventanas,Limpiavidrios y trapo,35,30
+13,Limpieza de alfombras y tapetes,Aspiradora,30,30
+14,Limpieza de pisos duros,Mopa y cubo,30,40
+15,Limpieza de equipos y maquinaria,Desinfectante y trapo,60,60
+16,Limpieza post-construcción,"Escoba, trapeador y cubo",80,120
+17,Limpieza de estacionamientos,Escoba y recogedor,50,60
+18,Limpieza de hospitales,Desinfectante y trapo,100,90
+19,Limpieza de tiendas y centros comerciales,Aspiradora y trapeador,70,90
