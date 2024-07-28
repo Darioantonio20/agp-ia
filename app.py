@@ -71,6 +71,7 @@ def algoritmo_genetico(tamano_poblacion, actividades, generaciones, tasa_mutacio
     evolucion_mejor_aptitud = []
     evolucion_tiempos = []
     evolucion_costos = []
+    evolucion_peor = []
 
     for generacion in range(generaciones):
         padres = seleccionar_padres(poblacion)
@@ -92,7 +93,13 @@ def algoritmo_genetico(tamano_poblacion, actividades, generaciones, tasa_mutacio
         evolucion_tiempos.append((mejor_individuo.tiempo, tiempo_promedio, peor_individuo.tiempo))
         evolucion_costos.append((mejor_individuo.costo, costo_promedio, peor_individuo.costo))
 
-    return peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos
+        evolucion_peor.append({
+            'tiempo': peor_individuo.tiempo,
+            'costo': peor_individuo.costo,
+            'personal': peor_individuo.personal
+        })
+
+    return peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos, evolucion_peor
 
 def calcular_datos(actividades, personal, peor=False):
     tiempo_total = sum([actividad['tiempo'] for actividad in actividades])
@@ -119,46 +126,44 @@ def index():
         cantidad_actividades = int(request.form['cantidadActividades'])
         actividades_seleccionadas = request.form.getlist('actividad')
         
-        # Filtrar actividades seleccionadas por el usuario
         actividades_usuario = [ACTIVIDADES_LIMPIEZA[int(index)] for index in actividades_seleccionadas]
 
-        peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos = algoritmo_genetico(
+        peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos, evolucion_peor = algoritmo_genetico(
             tamano_poblacion=20, 
             actividades=actividades_usuario, 
             generaciones=100, 
             tasa_mutacion=0.01
         )
 
-        # Calcula datos basados en las actividades seleccionadas por el usuario
         peor = calcular_datos(actividades_usuario, 1, peor=True)
         intermedio = calcular_datos(actividades_usuario, random.randint(2, 3))
         mejor = calcular_datos(actividades_usuario, random.randint(3, 5))
 
         generaciones = list(range(100))
 
-        # Gráfica de evolución del costo total
+        # Gráfica de evolución del peor individuo
+        tiempos_peor = [data['tiempo'] for data in evolucion_peor]
+        costos_peor = [data['costo'] for data in evolucion_peor]
+        personal_peor = [data['personal'] for data in evolucion_peor]
+
         plt.figure(figsize=(10, 6))
-        costos_mejor = [c[0] for c in evolucion_costos]
-        costos_promedio = [c[1] for c in evolucion_costos]
-        costos_peor = [c[2] for c in evolucion_costos]
-        plt.plot(generaciones, costos_mejor, label='Mejor Costo', color='blue')
-        plt.plot(generaciones, costos_promedio, label='Costo Promedio', color='green')
-        plt.plot(generaciones, costos_peor, label='Peor Costo', color='red')
+        plt.plot(generaciones, tiempos_peor, label='Tiempo Peor', color='red')
+        plt.plot(generaciones, costos_peor, label='Costo Peor', color='blue')
+        plt.plot(generaciones, personal_peor, label='Personal Peor', color='green')
         plt.xlabel('Generaciones')
-        plt.ylabel('Costo Total')
-        plt.title('Evolución del Costo Total')
+        plt.ylabel('Valores del Peor Individuo')
+        plt.title('Evolución del Peor Individuo')
         plt.legend()
         plt.grid(True)
-        plt.ylim(0, max(costos_peor) + 10)
         plt.tight_layout()
-        plt.savefig('static/grafica_costos_evolucion.png')
+        plt.savefig('static/grafica_peor_individuo.png')
         plt.close()
 
         return jsonify({
             'solucion_un_empleado': peor,
             'solucion_intermedia': intermedio,
             'solucion_mejor': mejor,
-            'grafica_costos_path': url_for('static', filename='grafica_costos_evolucion.png')
+            'grafica_peor_individuo_path': url_for('static', filename='grafica_peor_individuo.png')
         })
 
     return render_template('index.html', actividades=ACTIVIDADES_LIMPIEZA)
