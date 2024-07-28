@@ -91,13 +91,19 @@
             </tbody>
         </table>
 
-        <div>
-            <h2 class="thCenter">Evolución del Tiempo</h2>
-            <img id="grafica_tiempos" src="" alt="Gráfica de la Evolución del Tiempo">
-        </div>
-        <div>
-            <h2 class="thCenter">Evolución del Costo</h2>
-            <img id="grafica_costos" src="" alt="Gráfica de la Evolución del Costo">
+        <div class="graficas">
+            <div>
+                <h2 class="tituloGraficas">Evolución del peor empleado</h2>
+                <img id="grafica_peor_individuo" src="" alt="Gráfica del Peor Individuo">
+            </div>
+            <div>
+                <h2 class="tituloGraficas">Evolución de los empleados promedio</h2>
+                <img id="grafica_promedio" src="" alt="Gráfica del Promedio">
+            </div>
+            <div>
+                <h2 class="tituloGraficas">Evolución del mejor empleado</h2>
+                <img id="grafica_mejor_individuo" src="" alt="Gráfica del Mejor Individuo">
+            </div>
         </div>
     </div>
 
@@ -179,8 +185,9 @@
                 document.getElementById('costo_mejor').textContent = data.solucion_mejor.costo_total;
                 document.getElementById('satisfactorio_mejor').textContent = data.solucion_mejor.satisfactorio;
 
-                document.getElementById('grafica_tiempos').src = data.grafica_tiempos_path;
-                document.getElementById('grafica_costos').src = data.grafica_costos_path;
+                document.getElementById('grafica_peor_individuo').src = data.grafica_peor_individuo_path;
+                document.getElementById('grafica_promedio').src = data.grafica_promedio_path;
+                document.getElementById('grafica_mejor_individuo').src = data.grafica_mejor_individuo_path;
             });
         });
     </script>

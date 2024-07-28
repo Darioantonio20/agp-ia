@@ -258,3 +258,20 @@ th {
 .align-left {
   text-align: left;
 }
+
+.graficas {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 20px;
+
+}
+.graficas img {
+  width: 100%;
+  height: auto;
+}
+
+.tituloGraficas{
+  text-align: center;
+  font-size: 2rem;
+  color: #cbc9c9;
+}

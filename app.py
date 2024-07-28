@@ -72,6 +72,8 @@ def algoritmo_genetico(tamano_poblacion, actividades, generaciones, tasa_mutacio
     evolucion_tiempos = []
     evolucion_costos = []
     evolucion_peor = []
+    evolucion_promedio = []
+    evolucion_mejor = []
 
     for generacion in range(generaciones):
         padres = seleccionar_padres(poblacion)
@@ -88,6 +90,7 @@ def algoritmo_genetico(tamano_poblacion, actividades, generaciones, tasa_mutacio
         peor_individuo = max(poblacion, key=lambda x: x.aptitud)
         tiempo_promedio = sum(individuo.tiempo for individuo in poblacion) / len(poblacion)
         costo_promedio = sum(individuo.costo for individuo in poblacion) / len(poblacion)
+        personal_promedio = sum(individuo.personal for individuo in poblacion) / len(poblacion)
 
         evolucion_mejor_aptitud.append(mejor_individuo.aptitud)
         evolucion_tiempos.append((mejor_individuo.tiempo, tiempo_promedio, peor_individuo.tiempo))
@@ -99,7 +102,19 @@ def algoritmo_genetico(tamano_poblacion, actividades, generaciones, tasa_mutacio
             'personal': peor_individuo.personal
         })
 
-    return peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos, evolucion_peor
+        evolucion_promedio.append({
+            'tiempo': tiempo_promedio,
+            'costo': costo_promedio,
+            'personal': personal_promedio
+        })
+
+        evolucion_mejor.append({
+            'tiempo': mejor_individuo.tiempo,
+            'costo': mejor_individuo.costo,
+            'personal': mejor_individuo.personal
+        })
+
+    return peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos, evolucion_peor, evolucion_promedio, evolucion_mejor
 
 def calcular_datos(actividades, personal, peor=False):
     tiempo_total = sum([actividad['tiempo'] for actividad in actividades])
@@ -128,11 +143,11 @@ def index():
         
         actividades_usuario = [ACTIVIDADES_LIMPIEZA[int(index)] for index in actividades_seleccionadas]
 
-        peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos, evolucion_peor = algoritmo_genetico(
+        peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos, evolucion_peor, evolucion_promedio, evolucion_mejor = algoritmo_genetico(
             tamano_poblacion=20, 
             actividades=actividades_usuario, 
             generaciones=100, 
-            tasa_mutacion=0.01
+            tasa_mutacion=0.2
         )
 
         peor = calcular_datos(actividades_usuario, 1, peor=True)
@@ -141,29 +156,84 @@ def index():
 
         generaciones = list(range(100))
 
+        # Encontrar el valor máximo de tiempo o costo para establecer el límite de Y
+        max_tiempo = max(max(data['tiempo'] for data in evolucion_peor),
+                          max(data['tiempo'] for data in evolucion_promedio),
+                          max(data['tiempo'] for data in evolucion_mejor))
+        
+        max_costo = max(max(data['costo'] for data in evolucion_peor),
+                         max(data['costo'] for data in evolucion_promedio),
+                         max(data['costo'] for data in evolucion_mejor))
+
+        y_max = max(max_tiempo, max_costo) + 100  # Agregar un margin para mayor claridad
+
         # Gráfica de evolución del peor individuo
         tiempos_peor = [data['tiempo'] for data in evolucion_peor]
         costos_peor = [data['costo'] for data in evolucion_peor]
         personal_peor = [data['personal'] for data in evolucion_peor]
 
         plt.figure(figsize=(10, 6))
-        plt.plot(generaciones, tiempos_peor, label='Tiempo Peor', color='red')
-        plt.plot(generaciones, costos_peor, label='Costo Peor', color='blue')
-        plt.plot(generaciones, personal_peor, label='Personal Peor', color='green')
+        plt.plot(generaciones, tiempos_peor, label='Peor Tiempo', color='blue')
+        plt.plot(generaciones, costos_peor, label='Peor Costo', color='#556B2F')
+        plt.plot(generaciones, personal_peor, label='Peor Personal', color='red')
         plt.xlabel('Generaciones')
         plt.ylabel('Valores del Peor Individuo')
         plt.title('Evolución del Peor Individuo')
+        plt.ylim(0, y_max)
+        plt.yticks(range(0, y_max + 100, 100))
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
         plt.savefig('static/grafica_peor_individuo.png')
         plt.close()
 
+        # Gráfica de evolución del promedio
+        tiempos_promedio = [data['tiempo'] for data in evolucion_promedio]
+        costos_promedio = [data['costo'] for data in evolucion_promedio]
+        personal_promedio = [data['personal'] for data in evolucion_promedio]
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(generaciones, tiempos_promedio, label='Promedio Tiempo', color='blue')
+        plt.plot(generaciones, costos_promedio, label='Promedio Costo', color='#556B2F')
+        plt.plot(generaciones, personal_promedio, label='Promedio Personal', color='gray')
+        plt.xlabel('Generaciones')
+        plt.ylabel('Valores Promedio')
+        plt.title('Evolución del Promedio')
+        plt.ylim(0, y_max)
+        plt.yticks(range(0, y_max + 100, 100))
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig('static/grafica_promedio.png')
+        plt.close()
+
+        # Gráfica de evolución del mejor individuo
+        tiempos_mejor = [data['tiempo'] for data in evolucion_mejor]
+        costos_mejor = [data['costo'] for data in evolucion_mejor]
+        personal_mejor = [data['personal'] for data in evolucion_mejor]
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(generaciones, tiempos_mejor, label='Mejor Tiempo', color='blue')
+        plt.plot(generaciones, costos_mejor, label='Mejor Costo', color='#556B2F')
+        plt.plot(generaciones, personal_mejor, label='Mejor Personal', color='green')
+        plt.xlabel('Generaciones')
+        plt.ylabel('Valores del Mejor Individuo')
+        plt.title('Evolución del Mejor Individuo')
+        plt.ylim(0, y_max)
+        plt.yticks(range(0, y_max + 100, 100))
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig('static/grafica_mejor_individuo.png')
+        plt.close()
+
         return jsonify({
             'solucion_un_empleado': peor,
             'solucion_intermedia': intermedio,
             'solucion_mejor': mejor,
-            'grafica_peor_individuo_path': url_for('static', filename='grafica_peor_individuo.png')
+            'grafica_peor_individuo_path': url_for('static', filename='grafica_peor_individuo.png'),
+            'grafica_promedio_path': url_for('static', filename='grafica_promedio.png'),
+            'grafica_mejor_individuo_path': url_for('static', filename='grafica_mejor_individuo.png')
         })
 
     return render_template('index.html', actividades=ACTIVIDADES_LIMPIEZA)
