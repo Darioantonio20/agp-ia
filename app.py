@@ -140,13 +140,13 @@ def index():
     if request.method == 'POST':
         cantidad_actividades = int(request.form['cantidadActividades'])
         actividades_seleccionadas = request.form.getlist('actividad')
-        
+
         actividades_usuario = [ACTIVIDADES_LIMPIEZA[int(index)] for index in actividades_seleccionadas]
 
         peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos, evolucion_peor, evolucion_promedio, evolucion_mejor = algoritmo_genetico(
-            tamano_poblacion=20, 
-            actividades=actividades_usuario, 
-            generaciones=100, 
+            tamano_poblacion=20,
+            actividades=actividades_usuario,
+            generaciones=100,
             tasa_mutacion=0.2
         )
 
@@ -156,18 +156,16 @@ def index():
 
         generaciones = list(range(100))
 
-        # Encontrar el valor máximo de tiempo o costo para establecer el límite de Y
         max_tiempo = max(max(data['tiempo'] for data in evolucion_peor),
-                          max(data['tiempo'] for data in evolucion_promedio),
-                          max(data['tiempo'] for data in evolucion_mejor))
-        
+                         max(data['tiempo'] for data in evolucion_promedio),
+                         max(data['tiempo'] for data in evolucion_mejor))
+
         max_costo = max(max(data['costo'] for data in evolucion_peor),
-                         max(data['costo'] for data in evolucion_promedio),
-                         max(data['costo'] for data in evolucion_mejor))
+                        max(data['costo'] for data in evolucion_promedio),
+                        max(data['costo'] for data in evolucion_mejor))
 
-        y_max = max(max_tiempo, max_costo) + 100  # Agregar un margin para mayor claridad
+        y_max = max(max_tiempo, max_costo) + 100
 
-        # Gráfica de evolución del peor individuo
         tiempos_peor = [data['tiempo'] for data in evolucion_peor]
         costos_peor = [data['costo'] for data in evolucion_peor]
         personal_peor = [data['personal'] for data in evolucion_peor]
@@ -180,14 +178,13 @@ def index():
         plt.ylabel('Valores del Peor Individuo')
         plt.title('Evolución del Peor Individuo')
         plt.ylim(0, y_max)
-        plt.yticks(range(0, y_max + 100, 100))
+        plt.yticks(range(0, y_max + 100, 25))
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
         plt.savefig('static/grafica_peor_individuo.png')
         plt.close()
 
-        # Gráfica de evolución del promedio
         tiempos_promedio = [data['tiempo'] for data in evolucion_promedio]
         costos_promedio = [data['costo'] for data in evolucion_promedio]
         personal_promedio = [data['personal'] for data in evolucion_promedio]
@@ -200,14 +197,13 @@ def index():
         plt.ylabel('Valores Promedio')
         plt.title('Evolución del Promedio')
         plt.ylim(0, y_max)
-        plt.yticks(range(0, y_max + 100, 100))
+        plt.yticks(range(0, y_max + 100, 25))
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
         plt.savefig('static/grafica_promedio.png')
         plt.close()
 
-        # Gráfica de evolución del mejor individuo
         tiempos_mejor = [data['tiempo'] for data in evolucion_mejor]
         costos_mejor = [data['costo'] for data in evolucion_mejor]
         personal_mejor = [data['personal'] for data in evolucion_mejor]
@@ -220,7 +216,7 @@ def index():
         plt.ylabel('Valores del Mejor Individuo')
         plt.title('Evolución del Mejor Individuo')
         plt.ylim(0, y_max)
-        plt.yticks(range(0, y_max + 100, 100))
+        plt.yticks(range(0, y_max + 100, 25))
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
