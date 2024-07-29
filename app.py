@@ -50,23 +50,44 @@ def crear_individuo(actividades):
 def crear_poblacion(tamano, actividades):
     return [crear_individuo(random.sample(actividades, len(actividades))) for _ in range(tamano)]
 
-def seleccionar_padres(poblacion):
-    poblacion.sort(key=lambda x: x.aptitud)
-    return poblacion[:2]
+def formar_parejas(poblacion):
+    parejas = []
+    n = len(poblacion)
+    for individuo in poblacion:
+        m = random.randint(1, n)
+        indices = random.sample(range(n), m)
+        indices = [i for i in indices if i != poblacion.index(individuo)]
+        for indice in indices:
+            parejas.append((individuo, poblacion[indice]))
+    return parejas
 
 def cruce(padre1, padre2):
-    punto_cruce = random.randint(1, len(padre1.actividades) - 1)
+    punto_cruce = len(padre1.actividades) // 2
     hijo1_actividades = padre1.actividades[:punto_cruce] + padre2.actividades[punto_cruce:]
-    hijo2_actividades = padre2.actividades[:punto_cruce] + padre1.actividades[punto_cruce:]
+    hijo2_actividades = padre2.actividades[:punto_cruce] + padre1.actividades[:punto_cruce:]
     return crear_individuo(hijo1_actividades), crear_individuo(hijo2_actividades)
 
-def mutar(individuo, tasa_mutacion, actividades):
-    if random.random() < tasa_mutacion:
-        individuo.actividades = random.sample(actividades, len(individuo.actividades))
+def mutar(individuo, tasa_mutacion_gen, tasa_mutacion_individuo, actividades):
+    if random.random() < tasa_mutacion_individuo:
+        for i in range(len(individuo.actividades)):
+            if random.random() < tasa_mutacion_gen:
+                nuevo_actividad = random.choice(actividades)
+                individuo.actividades[i] = nuevo_actividad
         individuo.personal, individuo.tiempo, individuo.costo = individuo.calcular_datos()
         individuo.aptitud = individuo.evaluar_aptitud()
 
-def algoritmo_genetico(tamano_poblacion, actividades, generaciones, tasa_mutacion):
+def podar_poblacion(poblacion, poblacion_maxima):
+    poblacion_unica = {individuo.aptitud: individuo for individuo in poblacion}.values()
+    mejor_individuo = min(poblacion_unica, key=lambda x: x.aptitud)
+    poblacion_restante = [ind for ind in poblacion_unica if ind != mejor_individuo]
+    num_eliminar = len(poblacion_restante) - (poblacion_maxima - 1)
+    if num_eliminar > 0:
+        eliminar = random.sample(poblacion_restante, num_eliminar)
+        poblacion_restante = [ind for ind in poblacion_restante if ind not in eliminar]
+    poblacion_restante.append(mejor_individuo)
+    return poblacion_restante
+
+def algoritmo_genetico(tamano_poblacion, actividades, generaciones, tasa_mutacion_gen, tasa_mutacion_individuo):
     poblacion = crear_poblacion(tamano_poblacion, actividades)
     evolucion_mejor_aptitud = []
     evolucion_tiempos = []
@@ -76,15 +97,18 @@ def algoritmo_genetico(tamano_poblacion, actividades, generaciones, tasa_mutacio
     evolucion_mejor = []
 
     for generacion in range(generaciones):
-        padres = seleccionar_padres(poblacion)
+        parejas = formar_parejas(poblacion)
         descendencia = []
-        while len(descendencia) < tamano_poblacion:
-            hijo1, hijo2 = cruce(padres[0], padres[1])
-            mutar(hijo1, tasa_mutacion, actividades)
-            mutar(hijo2, tasa_mutacion, actividades)
+
+        for pareja in parejas:
+            hijo1, hijo2 = cruce(pareja[0], pareja[1])
+            mutar(hijo1, tasa_mutacion_gen, tasa_mutacion_individuo, actividades)
+            mutar(hijo2, tasa_mutacion_gen, tasa_mutacion_individuo, actividades)
             descendencia.append(hijo1)
             descendencia.append(hijo2)
-        poblacion = descendencia
+
+        poblacion.extend(descendencia)
+        poblacion = podar_poblacion(poblacion, tamano_poblacion)
 
         mejor_individuo = min(poblacion, key=lambda x: x.aptitud)
         peor_individuo = max(poblacion, key=lambda x: x.aptitud)
@@ -113,6 +137,12 @@ def algoritmo_genetico(tamano_poblacion, actividades, generaciones, tasa_mutacio
             'costo': mejor_individuo.costo,
             'personal': mejor_individuo.personal
         })
+
+         # Imprimir en consola los datos del peor, promedio y mejor individuo
+        print(f"Generación {generacion + 1}:")
+        print(f"  Peor - Tiempo: {peor_individuo.tiempo}, Costo: {peor_individuo.costo}, Personal: {peor_individuo.personal}")
+        print(f"  Promedio - Tiempo: {tiempo_promedio}, Costo: {costo_promedio}, Personal: {personal_promedio}")
+        print(f"  Mejor - Tiempo: {mejor_individuo.tiempo}, Costo: {mejor_individuo.costo}, Personal: {mejor_individuo.personal}")
 
     return peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos, evolucion_peor, evolucion_promedio, evolucion_mejor
 
@@ -144,10 +174,11 @@ def index():
         actividades_usuario = [ACTIVIDADES_LIMPIEZA[int(index)] for index in actividades_seleccionadas]
 
         peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos, evolucion_peor, evolucion_promedio, evolucion_mejor = algoritmo_genetico(
-            tamano_poblacion=20,
+            tamano_poblacion=26,
             actividades=actividades_usuario,
             generaciones=100,
-            tasa_mutacion=0.2
+            tasa_mutacion_gen=0.9,
+            tasa_mutacion_individuo=0.9
         )
 
         peor = calcular_datos(actividades_usuario, 1, peor=True)
