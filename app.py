@@ -1,37 +1,16 @@
+# app.py
 import random
 from flask import Flask, render_template, request, jsonify, url_for
 import matplotlib.pyplot as plt
 import matplotlib
-import csv
 import os
+from empleados import EMPLEADOS
+from actividades import ACTIVIDADES_LIMPIEZA
 
 matplotlib.use('Agg')
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
-
-ACTIVIDADES_LIMPIEZA = [
-    {'posicion': 0, 'actividad': 'Barrer', 'equipo': 'Escoba', 'costo': 20, 'tiempo': 15},
-    {'posicion': 1, 'actividad': 'Trapear', 'equipo': 'Trapeador y cubo', 'costo': 25, 'tiempo': 20},
-    {'posicion': 2, 'actividad': 'Limpiar ventanas', 'equipo': 'Limpiavidrios y trapo', 'costo': 35, 'tiempo': 30},
-    {'posicion': 3, 'actividad': 'Sacar la basura', 'equipo': 'Bolsas de basura', 'costo': 10, 'tiempo': 10},
-    {'posicion': 4, 'actividad': 'Desinfectar superficies', 'equipo': 'Desinfectante y trapo', 'costo': 40, 'tiempo': 25},
-    {'posicion': 5, 'actividad': 'Aspirar alfombras y tapetes', 'equipo': 'Aspiradora', 'costo': 30, 'tiempo': 30},
-    {'posicion': 6, 'actividad': 'Limpieza de baños', 'equipo': 'Cepillo de baño y desinfectante', 'costo': 45, 'tiempo': 40},
-    {'posicion': 7, 'actividad': 'Limpieza de cocinas', 'equipo': 'Desengrasante y trapo', 'costo': 45, 'tiempo': 45},
-    {'posicion': 8, 'actividad': 'Limpieza de muebles', 'equipo': 'Trapo y pulidor de muebles', 'costo': 20, 'tiempo': 20},
-    {'posicion': 9, 'actividad': 'Limpieza de electrodomésticos', 'equipo': 'Trapo y limpiador multiusos', 'costo': 35, 'tiempo': 30},
-    {'posicion': 10, 'actividad': 'Limpieza de oficinas', 'equipo': 'Aspiradora y trapo', 'costo': 50, 'tiempo': 60},
-    {'posicion': 11, 'actividad': 'Limpieza de áreas comunes', 'equipo': 'Trapeador y cubo', 'costo': 40, 'tiempo': 45},
-    {'posicion': 12, 'actividad': 'Limpieza de ventanas', 'equipo': 'Limpiavidrios y trapo', 'costo': 35, 'tiempo': 30},
-    {'posicion': 13, 'actividad': 'Limpieza de alfombras y tapetes', 'equipo': 'Aspiradora', 'costo': 30, 'tiempo': 30},
-    {'posicion': 14, 'actividad': 'Limpieza de pisos duros', 'equipo': 'Mopa y cubo', 'costo': 30, 'tiempo': 40},
-    {'posicion': 15, 'actividad': 'Limpieza de equipos y maquinaria', 'equipo': 'Desinfectante y trapo', 'costo': 60, 'tiempo': 60},
-    {'posicion': 16, 'actividad': 'Limpieza post-construcción', 'equipo': 'Escoba, trapeador y cubo', 'costo': 80, 'tiempo': 120},
-    {'posicion': 17, 'actividad': 'Limpieza de estacionamientos', 'equipo': 'Escoba y recogedor', 'costo': 50, 'tiempo': 60},
-    {'posicion': 18, 'actividad': 'Limpieza de hospitales', 'equipo': 'Desinfectante y trapo', 'costo': 100, 'tiempo': 90},
-    {'posicion': 19, 'actividad': 'Limpieza de tiendas y centros comerciales', 'equipo': 'Aspiradora y trapeador', 'costo': 70, 'tiempo': 90}
-]
 
 class Individuo:
     def __init__(self, actividades):
@@ -168,39 +147,16 @@ def calcular_datos(actividades, personal, peor=False):
         'satisfactorio': satisfactorio
     }
 
-def cargar_empleados(filepath):
-    empleados = []
-    with open(filepath, mode='r') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            empleados.append(row)
-    return empleados
-
-def asignar_actividades_a_empleados(empleados, actividades):
-    actividades_asignadas = []
-    for actividad in actividades:
-        num_personal = max(1, actividad['tiempo'] // 60)
-        empleados_para_actividad = random.sample(empleados, min(num_personal, len(empleados)))
-        actividades_asignadas.append({
-            'actividad': actividad['actividad'],
-            'equipo': actividad['equipo'],
-            'empleados': empleados_para_actividad
-        })
-    return actividades_asignadas
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
     actividades_asignadas = None
-    empleados = []
     if request.method == 'POST':
         if 'file' in request.files:
             file = request.files['file']
             if file.filename != '':
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
                 file.save(filepath)
-                empleados = cargar_empleados(filepath)
-                actividades_asignadas = asignar_actividades_a_empleados(empleados, ACTIVIDADES_LIMPIEZA)
-            
+
         if 'cantidadActividades' in request.form:
             cantidad_actividades = int(request.form['cantidadActividades'])
         else:
@@ -300,7 +256,7 @@ def index():
             'actividades_asignadas': actividades_asignadas or []
         })
 
-    return render_template('index.html', actividades=ACTIVIDADES_LIMPIEZA, actividades_asignadas=actividades_asignadas or [], empleados=empleados)
+    return render_template('index.html', actividades=ACTIVIDADES_LIMPIEZA, empleados=EMPLEADOS)
 
 if __name__ == '__main__':
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
