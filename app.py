@@ -2,9 +2,13 @@ import random
 from flask import Flask, render_template, request, jsonify, url_for
 import matplotlib.pyplot as plt
 import matplotlib
+import csv
+import os
+
 matplotlib.use('Agg')
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
 
 ACTIVIDADES_LIMPIEZA = [
     {'posicion': 0, 'actividad': 'Barrer', 'equipo': 'Escoba', 'costo': 20, 'tiempo': 15},
@@ -62,7 +66,7 @@ def formar_parejas(poblacion):
     return parejas
 
 def cruce(padre1, padre2):
-    punto_cruce = len(padre1.actividades) // 2
+    punto_cruce = len(padre1.actividades) // 2 
     hijo1_actividades = padre1.actividades[:punto_cruce] + padre2.actividades[punto_cruce:]
     hijo2_actividades = padre2.actividades[:punto_cruce] + padre1.actividades[:punto_cruce:]
     return crear_individuo(hijo1_actividades), crear_individuo(hijo2_actividades)
@@ -79,8 +83,8 @@ def mutar(individuo, tasa_mutacion_gen, tasa_mutacion_individuo, actividades):
 def podar_poblacion(poblacion, poblacion_maxima):
     poblacion_unica = {individuo.aptitud: individuo for individuo in poblacion}.values()
     mejor_individuo = min(poblacion_unica, key=lambda x: x.aptitud)
-    poblacion_restante = [ind for ind in poblacion_unica if ind != mejor_individuo]
-    num_eliminar = len(poblacion_restante) - (poblacion_maxima - 1)
+    poblacion_restante = [ind for ind in poblacion_unica if ind != mejor_individuo] 
+    num_eliminar = len(poblacion_restante) - (poblacion_maxima - 1) 
     if num_eliminar > 0:
         eliminar = random.sample(poblacion_restante, num_eliminar)
         poblacion_restante = [ind for ind in poblacion_restante if ind not in eliminar]
@@ -138,7 +142,6 @@ def algoritmo_genetico(tamano_poblacion, actividades, generaciones, tasa_mutacio
             'personal': mejor_individuo.personal
         })
 
-         # Imprimir en consola los datos del peor, promedio y mejor individuo
         print(f"Generación {generacion + 1}:")
         print(f"  Peor - Tiempo: {peor_individuo.tiempo}, Costo: {peor_individuo.costo}, Personal: {peor_individuo.personal}")
         print(f"  Promedio - Tiempo: {tiempo_promedio}, Costo: {costo_promedio}, Personal: {personal_promedio}")
@@ -165,12 +168,45 @@ def calcular_datos(actividades, personal, peor=False):
         'satisfactorio': satisfactorio
     }
 
+def cargar_empleados(filepath):
+    empleados = []
+    with open(filepath, mode='r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            empleados.append(row)
+    return empleados
+
+def asignar_actividades_a_empleados(empleados, actividades):
+    actividades_asignadas = []
+    for actividad in actividades:
+        num_personal = max(1, actividad['tiempo'] // 60)
+        empleados_para_actividad = random.sample(empleados, min(num_personal, len(empleados)))
+        actividades_asignadas.append({
+            'actividad': actividad['actividad'],
+            'equipo': actividad['equipo'],
+            'empleados': empleados_para_actividad
+        })
+    return actividades_asignadas
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    actividades_asignadas = None
+    empleados = []
     if request.method == 'POST':
-        cantidad_actividades = int(request.form['cantidadActividades'])
-        actividades_seleccionadas = request.form.getlist('actividad')
+        if 'file' in request.files:
+            file = request.files['file']
+            if file.filename != '':
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+                file.save(filepath)
+                empleados = cargar_empleados(filepath)
+                actividades_asignadas = asignar_actividades_a_empleados(empleados, ACTIVIDADES_LIMPIEZA)
+            
+        if 'cantidadActividades' in request.form:
+            cantidad_actividades = int(request.form['cantidadActividades'])
+        else:
+            cantidad_actividades = 0
 
+        actividades_seleccionadas = request.form.getlist('actividad')
         actividades_usuario = [ACTIVIDADES_LIMPIEZA[int(index)] for index in actividades_seleccionadas]
 
         peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos, evolucion_peor, evolucion_promedio, evolucion_mejor = algoritmo_genetico(
@@ -260,10 +296,13 @@ def index():
             'solucion_mejor': mejor,
             'grafica_peor_individuo_path': url_for('static', filename='grafica_peor_individuo.png'),
             'grafica_promedio_path': url_for('static', filename='grafica_promedio.png'),
-            'grafica_mejor_individuo_path': url_for('static', filename='grafica_mejor_individuo.png')
+            'grafica_mejor_individuo_path': url_for('static', filename='grafica_mejor_individuo.png'),
+            'actividades_asignadas': actividades_asignadas or []
         })
 
-    return render_template('index.html', actividades=ACTIVIDADES_LIMPIEZA)
+    return render_template('index.html', actividades=ACTIVIDADES_LIMPIEZA, actividades_asignadas=actividades_asignadas or [], empleados=empleados)
 
 if __name__ == '__main__':
+    if not os.path.exists(app.config['UPLOAD_FOLDER']):
+        os.makedirs(app.config['UPLOAD_FOLDER'])
     app.run(debug=True)

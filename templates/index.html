@@ -105,6 +105,34 @@
                 <img id="grafica_mejor_individuo" src="" alt="Gráfica del Mejor Individuo">
             </div>
         </div>
+
+        <h2 class="thCenter">Resumen de Personal y Actividades</h2>
+        <table class="tablec">
+            <thead>
+                <tr>
+                    <th>Personal asignado</th>
+                    <th>Tareas a realizar</th>
+                    <th>Número de materiales de limpieza</th>
+                    <th>Rango de tiempos</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for asignacion in actividades_asignadas %}
+                <tr>
+                    <td>
+                        <ul>
+                            {% for empleado in asignacion.empleados %}
+                            <li>{{ empleado['Nombre'] }} {{ empleado['Apellido'] }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>{{ asignacion.actividad }}</td>
+                    <td>{{ asignacion.equipo }}</td>
+                    <td>{{ asignacion.tiempo }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
     <script>
@@ -188,6 +216,23 @@
                 document.getElementById('grafica_peor_individuo').src = data.grafica_peor_individuo_path;
                 document.getElementById('grafica_promedio').src = data.grafica_promedio_path;
                 document.getElementById('grafica_mejor_individuo').src = data.grafica_mejor_individuo_path;
+
+                // Llenar la nueva tabla de resumen
+                const resumenTableBody = document.querySelector('#resultados tbody');
+                data.actividades_asignadas.forEach(asignacion => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>
+                            <ul>
+                                ${asignacion.empleados.map(empleado => `<li>${empleado.Nombre} ${empleado.Apellido}</li>`).join('')}
+                            </ul>
+                        </td>
+                        <td>${asignacion.actividad}</td>
+                        <td>${asignacion.equipo}</td>
+                        <td>${asignacion.tiempo}</td>
+                    `;
+                    resumenTableBody.appendChild(tr);
+                });
             });
         });
     </script>
