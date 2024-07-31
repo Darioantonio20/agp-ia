@@ -1,4 +1,3 @@
-# app.py
 import random
 from flask import Flask, render_template, request, jsonify, url_for
 import matplotlib.pyplot as plt
@@ -6,26 +5,31 @@ import matplotlib
 import os
 from empleados import EMPLEADOS
 from actividades import ACTIVIDADES_LIMPIEZA
+from collections import Counter
 
 matplotlib.use('Agg')
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
+
 class Individuo:
     def __init__(self, actividades):
         self.actividades = actividades
-        self.personal, self.tiempo, self.costo = self.calcular_datos()
+        self.personal, self.tiempo, self.costo, self.equipos = self.calcular_datos()
         self.aptitud = self.evaluar_aptitud()
 
     def calcular_datos(self):
         tiempo_total = sum([actividad['tiempo'] for actividad in self.actividades])
         costo_total = sum([actividad['costo'] for actividad in self.actividades])
         personal = max(1, tiempo_total // 60)
-        return personal, tiempo_total, costo_total
+        equipos = Counter([actividad['equipo'] for actividad in self.actividades])
+        return personal, tiempo_total, costo_total, equipos
 
     def evaluar_aptitud(self):
-        return self.tiempo + self.costo + self.personal * 100
+        num_equipos = len(self.equipos)
+        peso_equipos = sum(self.equipos.values())
+        return self.tiempo + self.costo + self.personal * 100 + peso_equipos
 
 def crear_individuo(actividades):
     return Individuo(actividades)
@@ -56,7 +60,7 @@ def mutar(individuo, tasa_mutacion_gen, tasa_mutacion_individuo, actividades):
             if random.random() < tasa_mutacion_gen:
                 nuevo_actividad = random.choice(actividades)
                 individuo.actividades[i] = nuevo_actividad
-        individuo.personal, individuo.tiempo, individuo.costo = individuo.calcular_datos()
+        individuo.personal, individuo.tiempo, individuo.costo, individuo.equipos = individuo.calcular_datos()
         individuo.aptitud = individuo.evaluar_aptitud()
 
 def podar_poblacion(poblacion, poblacion_maxima):
@@ -121,12 +125,19 @@ def algoritmo_genetico(tamano_poblacion, actividades, generaciones, tasa_mutacio
             'personal': mejor_individuo.personal
         })
 
+
         print(f"Generación {generacion + 1}:")
         print(f"  Peor - Tiempo: {peor_individuo.tiempo}, Costo: {peor_individuo.costo}, Personal: {peor_individuo.personal}")
         print(f"  Promedio - Tiempo: {tiempo_promedio}, Costo: {costo_promedio}, Personal: {personal_promedio}")
         print(f"  Mejor - Tiempo: {mejor_individuo.tiempo}, Costo: {mejor_individuo.costo}, Personal: {mejor_individuo.personal}")
 
-    return peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos, evolucion_peor, evolucion_promedio, evolucion_mejor
+
+    # Calcular los equipos y el peso de los equipos
+    equipos_usados = set([actividad['equipo'] for actividad in mejor_individuo.actividades])
+    peso_equipos = len(mejor_individuo.actividades) * mejor_individuo.personal
+    equipos_usados = list(equipos_usados)
+
+    return peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos, evolucion_peor, evolucion_promedio, evolucion_mejor, equipos_usados, peso_equipos
 
 def calcular_datos(actividades, personal, peor=False):
     tiempo_total = sum([actividad['tiempo'] for actividad in actividades])
@@ -165,7 +176,7 @@ def index():
         actividades_seleccionadas = request.form.getlist('actividad')
         actividades_usuario = [ACTIVIDADES_LIMPIEZA[int(index)] for index in actividades_seleccionadas]
 
-        peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos, evolucion_peor, evolucion_promedio, evolucion_mejor = algoritmo_genetico(
+        peor_individuo, mejor_individuo, evolucion_mejor_aptitud, evolucion_tiempos, evolucion_costos, evolucion_peor, evolucion_promedio, evolucion_mejor, equipos_usados, peso_equipos = algoritmo_genetico(
             tamano_poblacion=26,
             actividades=actividades_usuario,
             generaciones=100,
@@ -176,7 +187,9 @@ def index():
         peor = calcular_datos(actividades_usuario, 1, peor=True)
         intermedio = calcular_datos(actividades_usuario, random.randint(2, 3))
         mejor = calcular_datos(actividades_usuario, random.randint(3, 5))
-
+        equipos_usados = dict(mejor_individuo.equipos)
+        peso_equipos = sum(equipos_usados.values())
+        
         generaciones = list(range(100))
 
         max_tiempo = max(max(data['tiempo'] for data in evolucion_peor),
@@ -253,7 +266,9 @@ def index():
             'grafica_peor_individuo_path': url_for('static', filename='grafica_peor_individuo.png'),
             'grafica_promedio_path': url_for('static', filename='grafica_promedio.png'),
             'grafica_mejor_individuo_path': url_for('static', filename='grafica_mejor_individuo.png'),
-            'actividades_asignadas': actividades_asignadas or []
+            'actividades_asignadas': actividades_asignadas or [],
+            'equipos_usados': equipos_usados,
+            'peso_equipos': peso_equipos
         })
 
     return render_template('index.html', actividades=ACTIVIDADES_LIMPIEZA, empleados=EMPLEADOS)
@@ -262,3 +277,6 @@ if __name__ == '__main__':
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
     app.run(debug=True)
+
+
+

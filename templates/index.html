@@ -104,7 +104,29 @@
                 <h2 class="tituloGraficas">Evolución del mejor empleado</h2>
                 <img id="grafica_mejor_individuo" src="" alt="Gráfica del Mejor Individuo">
             </div>
-        </div>
+        </div><br>
+
+        <center>
+            <h2 class="thCenter">Número de Equipos Óptimos por Actividades</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Equipos optimos</th>
+                        <th>Equipos usados</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <p id="peso_equipos"></p>
+                        </td>
+                        <td>
+                            <ul id="equipos_usados"></ul>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </center>
 
         <h2 class="thCenter">Resumen de Personal y Actividades</h2>
         <table class="tablec">
@@ -217,7 +239,11 @@
                 document.getElementById('grafica_promedio').src = data.grafica_promedio_path;
                 document.getElementById('grafica_mejor_individuo').src = data.grafica_mejor_individuo_path;
 
-                // Llenar la nueva tabla de resumen
+                // Mostrar los datos de equipos y peso de equipos
+                document.getElementById('peso_equipos').textContent = `Cantidad: ${data.peso_equipos}`;
+                document.getElementById('equipos_usados').innerHTML = Object.entries(data.equipos_usados)
+                    .map(([equipo, cantidad]) => `<li>${equipo}: ${cantidad}</li>`).join('');
+
                 const resumenTableBody = document.querySelector('#resultados tbody');
                 data.actividades_asignadas.forEach(asignacion => {
                     const tr = document.createElement('tr');
