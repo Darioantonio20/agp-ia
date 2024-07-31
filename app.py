@@ -158,6 +158,10 @@ def calcular_datos(actividades, personal, peor=False):
         'satisfactorio': satisfactorio
     }
 
+@app.route('/empleados')
+def mostrar_empleados():
+    return render_template('empleados.html', empleados=EMPLEADOS)
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     actividades_asignadas = None

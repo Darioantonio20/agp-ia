@@ -47,7 +47,7 @@
     </form>
 
     <div id="resultados" class="container" style="display: none;">
-        <h2 class="thCenter">Mejor Solución</h2>
+        <h1 class="thCenter">Mejor Solución</h1>
         <table class="tablec">
             <thead>
                 <tr>
@@ -107,7 +107,7 @@
         </div><br>
 
         <center>
-            <h2 class="thCenter">Número de Equipos Óptimos por Actividades</h2>
+            <h1>Mejor actividad por empezar</h1>
             <table>
                 <thead>
                     <tr>
@@ -127,35 +127,30 @@
                 </tbody>
             </table>
         </center>
+    </div>
 
-        <h2 class="thCenter">Resumen de Personal y Actividades</h2>
-        <table class="tablec">
+    <center>
+        <h1>Lista de Empleados</h1>
+        <table>
             <thead>
                 <tr>
-                    <th>Personal asignado</th>
-                    <th>Tareas a realizar</th>
-                    <th>Número de materiales de limpieza</th>
-                    <th>Rango de tiempos</th>
+                    <th>Nombre</th>
+                    <th>Apellido</th>
+                    <th>Clasificación</th>
                 </tr>
             </thead>
             <tbody>
-                {% for asignacion in actividades_asignadas %}
+                {% for empleado in empleados %}
                 <tr>
-                    <td>
-                        <ul>
-                            {% for empleado in asignacion.empleados %}
-                            <li>{{ empleado['Nombre'] }} {{ empleado['Apellido'] }}</li>
-                            {% endfor %}
-                        </ul>
-                    </td>
-                    <td>{{ asignacion.actividad }}</td>
-                    <td>{{ asignacion.equipo }}</td>
-                    <td>{{ asignacion.tiempo }}</td>
+                    <td>{{ empleado.Nombre }}</td>
+                    <td>{{ empleado.Apellido }}</td>
+                    <td>{{ empleado.Clasificación }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-    </div>
+    </center>
+
 
     <script>
         document.getElementById('generar-actividades').addEventListener('click', function() {
@@ -239,7 +234,6 @@
                 document.getElementById('grafica_promedio').src = data.grafica_promedio_path;
                 document.getElementById('grafica_mejor_individuo').src = data.grafica_mejor_individuo_path;
 
-                // Mostrar los datos de equipos y peso de equipos
                 document.getElementById('peso_equipos').textContent = `Cantidad: ${data.peso_equipos}`;
                 document.getElementById('equipos_usados').innerHTML = Object.entries(data.equipos_usados)
                     .map(([equipo, cantidad]) => `<li>${equipo}: ${cantidad}</li>`).join('');
